@@ -31,7 +31,7 @@ for i = 1:size(tri,1)
     
     % Assignments for sparse()
     iIndex((i-1)*nBF2+1:i*nBF2) = reshape(repmat(tri(i,:),numBaseFun,1),nBF2,1);
-    jIndex((i-1)*nBF2+1:i*nBF2) = repmat(tri(i,:),numBaseFun,1); 
+    jIndex((i-1)*nBF2+1:i*nBF2) = repmat(tri(i,:),1,numBaseFun); 
     K_val((i-1)*nBF2+1:i*nBF2) = reshape(K_T,nBF2,1);
     M_val((i-1)*nBF2+1:i*nBF2) = reshape(M_T,nBF2,1);
     b(tri(i,:)) = b(tri(i,:)) + b_T;
