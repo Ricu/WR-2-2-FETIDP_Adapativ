@@ -2,13 +2,12 @@ function [cu,u_FETIDP_glob] = fetidp(x,x__sd,tri__sd,l2g__sd,f,dirichlet,plot)
 
 numSD = length(l2g__sd);
 %% Create logical vectors
-% dirichlet = or(ismember(x(:,1),xLim), ismember(x(:,2),yLim));
 cDirichlet = cell(numSD,1); % Dirichlet Knoten
-cInner = cell(numSD,1); % Innere Knoten
-cGamma = cell(numSD,1); % Interface Knoten
-cDual = cell(numSD,1);
-cPrimal = cell(numSD,1);
-cIDual = cell(numSD,1);
+cInner = cell(numSD,1);     % Innere Knoten Lokal
+cGamma = cell(numSD,1);     % Interface Knoten Lokal
+cDual = cell(numSD,1);      % Duale Knoten Lokal
+cPrimal = cell(numSD,1);    % Primale Knoten Lokal
+cIDual = cell(numSD,1);     % Innere und Duale Knoten Lokal
 
 multiplicity = zeros(size(x,1),1);
 for i = 1:numSD
