@@ -31,6 +31,11 @@ for i=1:numTri % Iteriere ueber die Elemente
     end
 end
 
+canalElements = pho > 1;
+figure()
+
+patch('vertices',vert,'faces',tri,'edgecol','k','facecol',[1,1,1]); hold on; axis equal tight;
+patch('vertices',vert,'faces',tri(canalElements,:),'edgecol','k','facecol',[.8,.9,1]);
 
 [cu,u_FETIDP_glob] = fetidp(vert,vert__sd,tri__sd,l2g__sd,f,dirichlet,true);
 
