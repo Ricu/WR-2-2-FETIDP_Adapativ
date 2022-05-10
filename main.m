@@ -22,21 +22,41 @@ pho = ones(numTri,1);
 % Definiere Kanal
 xMin=14/30; xMax=16/30;
 yMin=3/30;  yMax=27/30;
-indVert = (xMin <= vert(:,1) & vert(:,1) <= xMax & yMin <= vert(:,2) & vert(:,2) <= yMax); % Definiere Kanal, logischer Vektor
-canalVert = 1:numVert;
-canalVert = canalVert(indVert); % Finde Knotennummern der Knoten, die im Kanal liegen
+indVertCanal = (xMin <= vert(:,1) & vert(:,1) <= xMax & yMin <= vert(:,2) & vert(:,2) <= yMax);  % Logischer Vektor, welche Knoten im Kanal liegen
+numVertCanal = 1:numVert;
+numVertCanal = numVertCanal(indVertCanal); % Knotennummern der Knoten, die im Kanal liegen
 for i=1:numTri % Iteriere ueber die Elemente
-    if ismember(tri(i,:),canalVert) % Alle Knoten des Elements liegen im Kanal
+    if ismember(tri(i,:),numVertCanal) % Alle Knoten des Elements liegen im Kanal
         pho(i)=10^6;    % Im Kanal entspricht die Koeffizientenfunktion 10^6
     end
 end
+indElementsCanal = pho > 1; % Logischer Vektor, welche Elemente im Kanal liegen
 
-canalElements = pho > 1;
+%% Plotten des Gitters mit Kanal
 figure()
-
 patch('vertices',vert,'faces',tri,'edgecol','k','facecol',[1,1,1]); hold on; axis equal tight;
-patch('vertices',vert,'faces',tri(canalElements,:),'edgecol','k','facecol',[.8,.9,1]);
+patch('vertices',vert,'faces',tri(indElementsCanal,:),'edgecol','k','facecol',[.8,.9,1]);
 
+%% Definiere Matrix U
+
+%% Definiere Projektion P
+P=U*(U'*F*U)\eye(size(U'*F*U))*U'*F;
+
+%% Definiere Vorkonditionierer
+% Deflation-VK M^-1_PP
+deflationVK= @(x) (eye(size(P))-P)*invM*(eye(size(P))-P)'*x;
+% invM = dirichletVK
+
+% Balancing-VK M^-1_BP
+balancingVK= @(x) deflationVK(x)+U*((U'*F*U)\eye(size(U'*F*U)))*U'*x;
+
+% Identitaet
+idVK= @(x) eye(size(x))*x;
+
+% Dirichlet-VK
+
+
+%% Loesen des Systems mit FETI-DP
 [cu,u_FETIDP_glob] = fetidp(vert,vert__sd,tri__sd,l2g__sd,f,dirichlet,true);
 
                 
@@ -64,7 +84,6 @@ fprintf("Norm der Differenz: %e\n", norm(diff))
 % ploth = @(lambda,iter) plotiter(lambda,iter,cB_B,cK_BB,cK_PiB,cb_B,cPrimalMap, ...
 %                                 l2g__sd,cPrimal,cIDual,S_PiPi,f_PiTilde,f_B,tri__sd,vert__sd);
 % % preCG(hF,speye(n_LM),d,zeros(n_LM,1),tol,ploth);
-
 
 
 
