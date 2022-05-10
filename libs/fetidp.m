@@ -117,6 +117,7 @@ end
 %% create handle
 hF = @(lambda) F(cB_B,cK_BB,cK_PiB,S_PiPi,lambda);
 
+%test
 %% compute d
 f_B = cell2mat(cb_B);
 cb_B_trans = cellfun(@transpose,cb_B,'UniformOutput', false);
