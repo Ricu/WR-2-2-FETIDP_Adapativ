@@ -14,6 +14,9 @@ numVert=size(vert,1);   numTri=size(tri,1); % Anzahl Knoten und Dreiecke
 [vert__sd,tri__sd,l2g__sd] = meshPartSquare(N,vert,tri); % Erstelle Knoten- und Elementlisten pro Teilgebiet
 % Dirichletrand fehlt in Aufgabenstellung?!
 dirichlet = or(ismember(vert(:,1),vertLim), ismember(vert(:,2),yLim)); % Dirichletknoten, logischer Vektor
+[edges,elements_byEdgeIDs,adjacentElements__e] = mesh_edgeList(tri); % Erstelle Kantenliste, etc.
+numEdges=size(edges,1); % Anzahl Kanten
+numVertE=2; % Anzahl Knoten pro Kante
 
 %% PDE
 f = @(vert,y) ones(size(vert));   % Rechte Seite der DGL
@@ -37,28 +40,11 @@ figure()
 patch('vertices',vert,'faces',tri,'edgecol','k','facecol',[1,1,1]); hold on; axis equal tight;
 patch('vertices',vert,'faces',tri(indElementsCanal,:),'edgecol','k','facecol',[.8,.9,1]);
 
-%% Definiere Matrix U
-
-%% Definiere Projektion P
-P=U*(U'*F*U)\eye(size(U'*F*U))*U'*F;
-
 %% Definiere Vorkonditionierer
-% Deflation-VK M^-1_PP
-deflationVK= @(x) (eye(size(P))-P)*invM*(eye(size(P))-P)'*x;
-% invM = dirichletVK
+VK={'Deflation','Balancing','Identitaet','Dirichlet'};
 
-% Balancing-VK M^-1_BP
-balancingVK= @(x) deflationVK(x)+U*((U'*F*U)\eye(size(U'*F*U)))*U'*x;
-
-% Identitaet
-idVK= @(x) eye(size(x))*x;
-
-% Dirichlet-VK
-
-
-%% Loesen des Systems mit FETI-DP
-[cu,u_FETIDP_glob] = fetidp(vert,vert__sd,tri__sd,l2g__sd,f,dirichlet,true);
-
+%% Loesen des Systems mit FETI-DP erstmal Identitaet
+[cu,u_FETIDP_glob] = fetidp(numSD,vert,vert__sd,tri__sd,edges,numEdges,numVertE,l2g__sd,f,dirichlet,true,VK{3});
                 
 %% compare residuals
 [K,~,b] = assemble(tri,vert,1,f);

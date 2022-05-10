@@ -13,7 +13,7 @@ function [edges,elements_byEdgeIDs,adjacentElements__e] = mesh_edgeList(elements
 %    adjacentElements__e: cell array; each entry {i} contains a list for 
 %       the edge 'i' of IDs of all adjacent triangles.
 %
-    %
+%
     assert(size(elements,2) == 3,'Passed elements matrix must have three columns.')
     
     edges_notUnique = zeros(numel(elements),2);

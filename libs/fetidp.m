@@ -1,6 +1,5 @@
-function [cu,u_FETIDP_glob] = fetidp(x,x__sd,tri__sd,l2g__sd,f,dirichlet,plot)
+function [cu,u_FETIDP_glob] = fetidp(numSD,vert,vert__sd,tri__sd,edges,numEdges,numVertE,l2g__sd,f,dirichlet,true,VK)
 
-numSD = length(l2g__sd);
 %% Create logical vectors
 cDirichlet = cell(numSD,1); % Dirichlet Knoten
 cInner = cell(numSD,1);     % Innere Knoten Lokal
@@ -9,7 +8,7 @@ cDual = cell(numSD,1);      % Duale Knoten Lokal
 cPrimal = cell(numSD,1);    % Primale Knoten Lokal
 cIDual = cell(numSD,1);     % Innere und Duale Knoten Lokal
 
-multiplicity = zeros(size(x,1),1);
+multiplicity = zeros(size(vert,1),1);
 for i = 1:numSD
     multiplicity(l2g__sd{i}) = multiplicity(l2g__sd{i}) + 1; % Count occurences
 end
@@ -60,9 +59,9 @@ end
 
 %% B^(i) initialisieren
 n_LM = sum(multiplicity(dual) - 1);
-cB = cell(numSD,1);
+cB = cell(1,numSD);
 for i = 1:numSD
-    cB{i} = sparse(n_LM,length(x__sd{i}));
+    cB{i} = sparse(n_LM,length(vert__sd{i}));
 end
 
 %% Sprungoperator aufstellen
@@ -80,7 +79,7 @@ cK = cell(numSD,1); % Steifigkeitsmatrizen
 cb = cell(numSD,1); % Rechte Seiten
 
 for i = 1:numSD
-    [cK{i},~,cb{i}] = assemble(tri__sd{i}, x__sd{i},1,f);
+    [cK{i},~,cb{i}] = assemble(tri__sd{i}, vert__sd{i},1,f);
 end
 
 %% Assemble global K
@@ -126,6 +125,36 @@ temp = apply_1(cB_B,cK_BB,cK_PiB,S_PiPi \ temp);
 d = d - temp;
 
 
+%% Definiere Matrix U
+% U=zeros(n_LM,1);
+% numVertE;
+% B=cell2mat(cB);
+% for i=1:
+%     
+%     
+% end
+
+
+
+%% Definiere Projektion P
+P=U*(U'*F*U)\eye(size(U'*F*U))*U'*F;
+
+%% Definiere Vorkonditionierer
+dirichletVK= @(x) ...;
+deflationVK= @(x) (eye(size(P))-P)*invM*(eye(size(P))-P)'*x;  % invM = dirichletVK
+balancingVK= @(x) deflationVK(x)+U*((U'*F*U)\eye(size(U'*F*U)))*U'*x;
+idVK= @(x) eye(size(x))*x;
+
+if strcmp('Deflation',VK)  % Deflation-VK M^-1_PP
+    invM  = @(x) deflationVK(x);
+elseif strcmp('Balancing',VK) % Balancing-VK M^-1_BP
+    invM  = @(x) balancingVK(x);
+elseif strcmp('Dirichlet',VK)  % Dirichlet-VK
+    invM  = @(x) dirichletVK(x);   
+ elseif strcmp('Identitaet',VK)    % Identitaet
+    invM  = @(x) idVKVK(x);  
+ end
+
 %% PCG
 tol = 10^(-8);
 [lambda,~,iter,kappa_est] = preCG(hF,speye(n_LM),d,zeros(n_LM,1),tol);
@@ -137,7 +166,7 @@ fprintf("Schaetzung Konditionszahl: %e\n",kappa_est)
 
 if plot
     [cu,u_FETIDP_glob] = plotiter(lambda,iter,cB_B,cK_BB,cK_PiB,cb_B,cPrimalMap,...
-                    l2g__sd,cPrimal,cIDual,S_PiPi,f_PiTilde,f_B,tri__sd,x__sd);
+                    l2g__sd,cPrimal,cIDual,S_PiPi,f_PiTilde,f_B,tri__sd,vert__sd);
 else
     [cu,u_FETIDP_glob] = extract_u(lambda,cB_B,cK_BB,cK_PiB,cb_B,cPrimalMap,...
                     l2g__sd,cPrimal,cIDual,S_PiPi,f_PiTilde,f_B);
@@ -176,14 +205,14 @@ function [cu,u_glob] = extract_u(lambda,cB_B,cK_BB,cK_PiB,cb_B,cPrimalMap,...
     end
 end
 
-function [cu,u_FETIDP_glob] = plotiter(x,iter,cB_B,cK_BB,cK_PiB,cb_B,cPrimalMap,...
-                    l2g__sd,cPrimal,cIDual,S_PiPi,f_PiTilde,f_B,tri__sd,x__sd)
-    [cu,u_FETIDP_glob] = extract_u(x,cB_B,cK_BB,cK_PiB,cb_B,...
+function [cu,u_FETIDP_glob] = plotiter(vert,iter,cB_B,cK_BB,cK_PiB,cb_B,cPrimalMap,...
+                    l2g__sd,cPrimal,cIDual,S_PiPi,f_PiTilde,f_B,tri__sd,vert__sd)
+    [cu,u_FETIDP_glob] = extract_u(vert,cB_B,cK_BB,cK_PiB,cb_B,...
                        cPrimalMap, l2g__sd,cPrimal,cIDual,S_PiPi,f_PiTilde,f_B);
     figure()
     hold on
     for i = 1:length(tri__sd)
-        trisurf(tri__sd{i},x__sd{i}(:,1),x__sd{i}(:,2),cu{i});
+        trisurf(tri__sd{i},vert__sd{i}(:,1),vert__sd{i}(:,2),cu{i});
     end
     xlabel("x"); ylabel("y"); zlabel("z");
     title(sprintf("Plot der FETI-DP Loesung - Iteration: %i",iter));
