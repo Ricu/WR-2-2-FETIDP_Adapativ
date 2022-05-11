@@ -1,4 +1,4 @@
-function [cu,u_FETIDP_glob] = fetidp(numSD,vert,numVert,vert__sd,tri__sd,edges,numEdges,numVertE,l2g__sd,f,dirichlet,true,VK)
+function [cu,u_FETIDP_glob] = fetidp(numSD,vert,numVert,vert__sd,tri__sd,edges,numEdges,numVertE,l2g__sd,f,dirichlet,true,VK,maxRho)
 
 %% Create logical vectors
 cDirichlet = cell(numSD,1); % Dirichlet Knoten
@@ -63,25 +63,45 @@ for i = 1:numSD
     end
 end
 
-%% B^(i) initialisieren
+%% B^(i) initialisieren: mit und ohne Skalierung
 n_LM = sum(multiplicity(dual) - 1);
 cB = cell(1,numSD);
+cBskal=cell(1,numSD);
 for i = 1:numSD
     cB{i} = sparse(n_LM,length(vert__sd{i}));
+    cBskal{i}=sparse(n_LM,length(vert__sd{i}));
 end
 
-%% Sprungoperator aufstellen
+%% Sprungoperator aufstellen: mit und ohne Skalierung
 row_ind_LM = 1;
 LMdualVerts=cell(n_LM,1); % Liste, die zu jedem LM die dualen globalen Knotennummern enthaelt
+Nx=cell(numLM,1);   % Liste der Teilgebiete, die LM verbindet
+sumRho=zeros(length(cLM),1);
 for i = 1:length(cLM)
     cB{cLM{i}(1,1)}(row_ind_LM,cLM{i}(2,1)) = 1;
+    cBskal{cLM{i}(1,1)}(i,:)=cB{cLM{i}(1,1)}(i,:)*(rho(numTG)/sumRho); %jeweils rho des anderen Teilgebiets verwenden
     LMdualVerts{i}=cDualMap{i}(cLM{i}(2,1));
+    Nx{i}=cLM{i}(1,1);  
     for j = 2:size(cLM{i},2)
         cB{cLM{i}(1,j)}(row_ind_LM,cLM{i}(2,j)) = -1;
+        cBskal{cLM{i}(1,j)}(i,:)=cB{cLM{i}(1,j)}(i,:)*(rho(numTG_first)/sumRho);
         row_ind_LM = row_ind_LM + 1;
         LMdualVerts{i}=[LMdualVerts{i};cDualMap{i}(cLM{i}(2,j))];
+        Nx{i}=[Nx{i},cLM{i}(1,j)];  
     end
+    sumRho(i) = sum(maxRho(Nx{i})); 
 end
+
+
+row_ind_LM = 1;
+for i = 1:length(cLM)
+    cBskal{cLM{i}(1,1)}(i,:)=cB{cLM{i}(1,1)}(i,:)*(rho(numTG)/sumRho); %jeweils rho des anderen Teilgebiets verwenden
+    for j = 2:size(cLM{i},2)
+        cBskal{cLM{i}(1,j)}(i,:)=cB{cLM{i}(1,j)}(i,:)*(rho(numTG_first)/sumRho);
+        row_ind_LM = row_ind_LM + 1;
+    end   
+end
+
 %% Assemble stiffness matrices and load vector
 
 cK = cell(numSD,1); % Steifigkeitsmatrizen
@@ -102,15 +122,22 @@ for i = 1:numSD
 end
 
 %% Extract matrices
+cBskal_Delta=cell(numSD,1);
 cB_B = cell(numSD,1);
 cK_BB = cell(numSD,1);
+cK_DeltaDelta=cell(numSD,1);
+cK_II=cell(numSD,1);
+cK_DeltaI=cell(numSD,1);
 cb_B = cell(numSD,1);
 cK_PiB = cell(numSD,1);
 
-invM(numSD,cBskal_Delta,cK_DeltaDelta,cK_II,cK_DeltaI,x)
 for i = 1:numSD
+    cBskal_Delta{i}=cBskal{i}(:,cDual{i});
     cB_B{i} = cB{i}(:,cIDual{i});
     cK_BB{i} = cK{i}(cIDual{i},cIDual{i});
+    cK_DeltaDelta{i}=cK{i}(cDual{i},cDual{i});
+    cK_II{i}=cK{i}(cInner{i},cInner{i});
+    cK_DeltaI{i}=cK{i}(cDual{i},cInner{i});
     cb_B{i} = cb{i}(cIDual{i});
     cK_PiB{i} = sparse(nnz(primal),nnz(cIDual{i}));
     piInd = mapPi(l2g__sd{i}(cPrimal{i}));
@@ -136,6 +163,9 @@ d = d - temp;
 
 
 %% Definiere Matrix U
+
+%% TODO: Matrix U siehe aufgabenstellung
+
 % Vorarbeit
 edgesLM=zeros(numEdges,n_LM); % Gibt an, welche LM zu welcher Kante gehoeren
 for i=1:numEdges % Iteriere ueber Kanten
@@ -163,18 +193,11 @@ P = @(x) U*invUFU(U'*F(cB_B,cK_BB,cK_PiB,S_PiPi,x));
 
 %% Definiere Vorkonditionierer
 % Vorkonditionierer
-function [ergebnis] = invM(numSD,cBskal_Delta,cK_DeltaDelta,cK_II,cK_DeltaI,x)
-ergebnis=zeros(size(cBskal_Delta{1},1),1);
-for i=1:numTG
-    Vec1=cBskal_Delta{i}'*x;
-    Vec2=S_DeltaDeltaiFct(cK_DeltaDelta{i},cK_II{i},cK_DeltaI{i},Vec1);
-    ergebnis=ergebnis+cBskal_Delta{i}*Vec2;
-end
-
-dirichletVK = @(x) invM(numSD,cBskal_Delta,cK_DeltaDelta,cK_II,cK_DeltaI,x);;
+idVK= @(x) eye(size(x))*x;
+dirichletVK = @(x) dirVKfunction(numSD,cBskal_Delta,cK_DeltaDelta,cK_II,cK_DeltaI,x);
 deflationVK = @(x) idVK(dirichletVK(idVK(x)'-P(x)'))-P(dirichletVK(idVK(x)'-P(x)'));  % invM = dirichletVK
 balancingVK = @(x) deflationVK(x)+U*((U'*F*U)\eye(size(U'*F*U)))*U'*x;
-idVK= @(x) eye(size(x))*x;
+
 
 if strcmp('Deflation',VK)  % Deflation-VK M^-1_PP
     invM  = @(x) deflationVK(x);
@@ -275,4 +298,13 @@ function y = F(cB_B,cK_BB,cK_PiB,S_PiPi,x)
     
     temp2 = apply_1(cB_B,cK_BB,cB_B,x);             %B_B*K_BB^-1*B_B^T * x
     y = temp1 + temp2;
+end
+
+function [ergebnis] = dirVKfunction(numSD,cBskal_Delta,cK_DeltaDelta,cK_II,cK_DeltaI,x)
+ergebnis=zeros(size(cBskal_Delta{1},1),1);
+for i=1:numSD
+    Vec1=cBskal_Delta{i}'*x;
+    Vec2=S_DeltaDeltaiFct(cK_DeltaDelta{i},cK_II{i},cK_DeltaI{i},Vec1);
+    ergebnis=ergebnis+cBskal_Delta{i}*Vec2;
+end
 end

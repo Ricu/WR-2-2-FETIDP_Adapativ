@@ -35,6 +35,9 @@ for i=1:numTri % Iteriere ueber die Elemente
 end
 indElementsCanal = pho > 1; % Logischer Vektor, welche Elemente im Kanal liegen
 
+%% Definiere maximalen Koeffizienten pro TG %TODO
+maxRho=zeros(numTri,1);
+
 %% Plotten des Gitters mit Kanal
 figure()
 patch('vertices',vert,'faces',tri,'edgecol','k','facecol',[1,1,1]); hold on; axis equal tight;
@@ -44,7 +47,7 @@ patch('vertices',vert,'faces',tri(indElementsCanal,:),'edgecol','k','facecol',[.
 VK={'Deflation','Balancing','Identitaet','Dirichlet'};
 
 %% Loesen des Systems mit FETI-DP erstmal Identitaet
-[cu,u_FETIDP_glob] = fetidp(numSD,vert,,numVert,vert__sd,tri__sd,edges,numEdges,numVertE,l2g__sd,f,dirichlet,true,VK{3});
+[cu,u_FETIDP_glob] = fetidp(numSD,vert,numVert,vert__sd,tri__sd,edges,numEdges,numVertE,l2g__sd,f,dirichlet,true,VK{3},maxRho);
                 
 %% compare residuals
 [K,~,b] = assemble(tri,vert,1,f);
