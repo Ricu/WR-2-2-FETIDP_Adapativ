@@ -44,7 +44,7 @@ patch('vertices',vert,'faces',tri(indElementsCanal,:),'edgecol','k','facecol',[.
 VK={'Deflation','Balancing','Identitaet','Dirichlet'};
 
 %% Loesen des Systems mit FETI-DP erstmal Identitaet
-[cu,u_FETIDP_glob] = fetidp(numSD,vert,vert__sd,tri__sd,edges,numEdges,numVertE,l2g__sd,f,dirichlet,true,VK{3});
+[cu,u_FETIDP_glob] = fetidp(numSD,vert,,numVert,vert__sd,tri__sd,edges,numEdges,numVertE,l2g__sd,f,dirichlet,true,VK{3});
                 
 %% compare residuals
 [K,~,b] = assemble(tri,vert,1,f);

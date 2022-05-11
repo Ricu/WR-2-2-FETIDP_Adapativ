@@ -1,4 +1,4 @@
-function [cu,u_FETIDP_glob] = fetidp(numSD,vert,vert__sd,tri__sd,edges,numEdges,numVertE,l2g__sd,f,dirichlet,true,VK)
+function [cu,u_FETIDP_glob] = fetidp(numSD,vert,numVert,vert__sd,tri__sd,edges,numEdges,numVertE,l2g__sd,f,dirichlet,true,VK)
 
 %% Create logical vectors
 cDirichlet = cell(numSD,1); % Dirichlet Knoten
@@ -42,10 +42,16 @@ mapDual = zeros(length(dual),1);
 mapDual(dual)=1:nnz(dual);
 
 for i = 1:numSD
-    cGammaMap{i} = mapGamma((l2g__sd{i}(cGamma{i})));
+    cGammaMap{i} = mapGamma((l2g__sd{i}(cGamma{i}))); % Interfaceknoten: lokal zu global
     cPrimalMap{i} = mapPi((l2g__sd{i}(cPrimal{i})));
     cDualMap{i} = mapDual((l2g__sd{i}(cDual{i})));
 end
+
+%% Bestimme Indexabbildungen global -> dual und global -> primal
+mapDual=zeros(numVert,1);
+mapDual(dual) = 1:nnz(dual);
+mapPi=zeros(numVert,1);
+mapPi(primal) = 1:nnz(primal);
 
 %% Lagrange multiplikatioren info
 cLM = cell(sum(dual),1);
@@ -66,11 +72,14 @@ end
 
 %% Sprungoperator aufstellen
 row_ind_LM = 1;
+LMdualVerts=cell(n_LM,1); % Liste, die zu jedem LM die dualen globalen Knotennummern enthaelt
 for i = 1:length(cLM)
+    cB{cLM{i}(1,1)}(row_ind_LM,cLM{i}(2,1)) = 1;
+    LMdualVerts{i}=cDualMap{i}(cLM{i}(2,1));
     for j = 2:size(cLM{i},2)
-        cB{cLM{i}(1,1)}(row_ind_LM,cLM{i}(2,1)) = 1;
         cB{cLM{i}(1,j)}(row_ind_LM,cLM{i}(2,j)) = -1;
         row_ind_LM = row_ind_LM + 1;
+        LMdualVerts{i}=[LMdualVerts{i};cDualMap{i}(cLM{i}(2,j))];
     end
 end
 %% Assemble stiffness matrices and load vector
@@ -98,6 +107,7 @@ cK_BB = cell(numSD,1);
 cb_B = cell(numSD,1);
 cK_PiB = cell(numSD,1);
 
+invM(numSD,cBskal_Delta,cK_DeltaDelta,cK_II,cK_DeltaI,x)
 for i = 1:numSD
     cB_B{i} = cB{i}(:,cIDual{i});
     cK_BB{i} = cK{i}(cIDual{i},cIDual{i});
@@ -126,23 +136,44 @@ d = d - temp;
 
 
 %% Definiere Matrix U
-% U=zeros(n_LM,1);
-% numVertE;
-% B=cell2mat(cB);
-% for i=1:
-%     
-%     
-% end
+% Vorarbeit
+edgesLM=zeros(numEdges,n_LM); % Gibt an, welche LM zu welcher Kante gehoeren
+for i=1:numEdges % Iteriere ueber Kanten
+    eVerts=edges(i,:); % Globale Knotennummern der Kantenknoten
+    eDualVerts=mapDual(eVerts); % Duale Knotennummern der Kantenknoten
+    for j=1:n_LM % Iteriere ueber LM
+        % LMdualVerts enthaelt zu jedem LM die dualen Knotennummern
+        testMembership=ismember(eDualVerts,LMdualVerts{j});
+        if testMembership(1) || testMembership(2) % Einer der Kantenknoten gehoert zu diesem LM
+            edgesLM(i,j)=1;
+        end
+    end 
+end
+edgesLM=logical(edgesLM); % logische Matrix
 
-
+% Bestimme U mithilfe von edgesLM
+U=zeros(n_LM,numEdges);
+U(edgesLM')=ones(n_LM,1);
+U=1./numVertE*U; % Fuege Skalierung hinzu
 
 %% Definiere Projektion P
-P=U*(U'*F*U)\eye(size(U'*F*U))*U'*F;
+UFU =@(x) U'*F(cB_B,cK_BB,cK_PiB,S_PiPi,U*x);
+invUFU=@(x) UFU(x)\eye(size(UFU(x))); % TODO: Funktioniert das so?!
+P = @(x) U*invUFU(U'*F(cB_B,cK_BB,cK_PiB,S_PiPi,x));
 
 %% Definiere Vorkonditionierer
-dirichletVK= @(x) ...;
-deflationVK= @(x) (eye(size(P))-P)*invM*(eye(size(P))-P)'*x;  % invM = dirichletVK
-balancingVK= @(x) deflationVK(x)+U*((U'*F*U)\eye(size(U'*F*U)))*U'*x;
+% Vorkonditionierer
+function [ergebnis] = invM(numSD,cBskal_Delta,cK_DeltaDelta,cK_II,cK_DeltaI,x)
+ergebnis=zeros(size(cBskal_Delta{1},1),1);
+for i=1:numTG
+    Vec1=cBskal_Delta{i}'*x;
+    Vec2=S_DeltaDeltaiFct(cK_DeltaDelta{i},cK_II{i},cK_DeltaI{i},Vec1);
+    ergebnis=ergebnis+cBskal_Delta{i}*Vec2;
+end
+
+dirichletVK = @(x) invM(numSD,cBskal_Delta,cK_DeltaDelta,cK_II,cK_DeltaI,x);;
+deflationVK = @(x) idVK(dirichletVK(idVK(x)'-P(x)'))-P(dirichletVK(idVK(x)'-P(x)'));  % invM = dirichletVK
+balancingVK = @(x) deflationVK(x)+U*((U'*F*U)\eye(size(U'*F*U)))*U'*x;
 idVK= @(x) eye(size(x))*x;
 
 if strcmp('Deflation',VK)  % Deflation-VK M^-1_PP
