@@ -73,7 +73,3 @@ fprintf("Norm der Differenz: %e\n", norm(diff))
 % ploth = @(lambda,iter) plotiter(lambda,iter,cB_B,cK_BB,cK_PiB,cb_B,cPrimalMap, ...
 %                                 l2g__sd,cPrimal,cIDual,S_PiPi,f_PiTilde,f_B,tri__sd,vert__sd);
 % % preCG(hF,speye(n_LM),d,zeros(n_LM,1),tol,ploth);
-
-
-
-

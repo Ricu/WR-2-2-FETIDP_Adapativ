@@ -10,25 +10,25 @@ cIDual = cell(numSD,1);     % Innere und Duale Knoten Lokal
 
 multiplicity = zeros(size(vert,1),1);
 for i = 1:numSD
-    multiplicity(l2g__sd{i}) = multiplicity(l2g__sd{i}) + 1; % Count occurences
+    multiplicity(l2g__sd{i}) = multiplicity(l2g__sd{i}) + 1; % zaehle Vorkommnisse 
 end
-gamma = (multiplicity > 1) & ~dirichlet; % Extract interface vertices
-primal = (multiplicity == 4) & ~dirichlet; % Extract primal vertices
-dual = gamma & ~primal; % Extract dual vertices
+gamma = (multiplicity > 1) & ~dirichlet; % extrahiere Interfaceknoten
+primal = (multiplicity == 4) & ~dirichlet; % extrahiere primale Knoten
+dual = gamma & ~primal; % extrahiere duale Knoten
 
-%% Assign local logical vectors
+%% Ordne lokale logische Vektoren zu
 for i = 1:numSD
-    cDirichlet{i} = dirichlet(l2g__sd{i});
-    cGamma{i} = gamma(l2g__sd{i});
-    cInner{i} = ~(cGamma{i} | cDirichlet{i});
-    cPrimal{i} = primal(l2g__sd{i});
-    cDual{i} = dual(l2g__sd{i});
-    cIDual{i} = cInner{i} | cDual{i};
+    cDirichlet{i} = dirichlet(l2g__sd{i}); % Dirichletknoten teilgebietsweise
+    cGamma{i} = gamma(l2g__sd{i}); % Interfaceknoten teilgebietsweise
+    cInner{i} = ~(cGamma{i} | cDirichlet{i}); % innere Knoten teilgebietsweise
+    cPrimal{i} = primal(l2g__sd{i}); % primale Knoten teilgebietsweise
+    cDual{i} = dual(l2g__sd{i}); % duale Knoten teilgebietsweise
+    cIDual{i} = cInner{i} | cDual{i}; % innere/duale Knoten teilgebietsweise
 end
 
 %% FETI DP start
 
-%% Lokal interface -> globale Nummer
+%% Lokales Interface -> globale Nummerierung
 cGammaMap = cell(numSD,1);
 mapGamma = zeros(length(gamma),1);
 mapGamma(gamma)=1:nnz(gamma);
@@ -53,7 +53,7 @@ mapDual(dual) = 1:nnz(dual);
 mapPi=zeros(numVert,1);
 mapPi(primal) = 1:nnz(primal);
 
-%% Lagrange multiplikatioren info
+%% Lagrange Multiplikatoren info
 cLM = cell(sum(dual),1);
 for i = 1:numSD
     i_ind = find(cDual{i});
@@ -68,14 +68,14 @@ n_LM = sum(multiplicity(dual) - 1);
 cB = cell(1,numSD);
 cBskal=cell(1,numSD);
 for i = 1:numSD
-    cB{i} = sparse(n_LM,length(vert__sd{i}));
+    cB{i}=sparse(n_LM,length(vert__sd{i}));
     cBskal{i}=sparse(n_LM,length(vert__sd{i}));
 end
 
 %% Sprungoperator aufstellen: mit und ohne Skalierung
 row_ind_LM = 1;
-LMdualVerts=cell(n_LM,1); % Liste, die zu jedem LM die dualen globalen Knotennummern enthaelt
-Nx=cell(numLM,1);   % Liste der Teilgebiete, die LM verbindet
+LMdualVerts=cell(n_LM,1); % Liste enthaelt zu jedem LM die dualen globalen Knotennummern
+Nx=cell(numLM,1);   % Liste verbindet LM der Teilgebiete
 sumRho=zeros(length(cLM),1);
 for i = 1:length(cLM)
     cB{cLM{i}(1,1)}(row_ind_LM,cLM{i}(2,1)) = 1;
@@ -102,7 +102,7 @@ for i = 1:length(cLM)
     end   
 end
 
-%% Assemble stiffness matrices and load vector
+%% Assembliere die Steifigkeitsmatrix und den Lastvektor
 
 cK = cell(numSD,1); % Steifigkeitsmatrizen
 cb = cell(numSD,1); % Rechte Seiten
@@ -111,7 +111,7 @@ for i = 1:numSD
     [cK{i},~,cb{i}] = assemble(tri__sd{i}, vert__sd{i},1,f);
 end
 
-%% Assemble global K
+%% Assembliere globales K in primalen Variablen
 K_PiPiTilde = sparse(sum(primal),sum(primal));
 f_PiTilde = sparse(sum(primal),1);
 
@@ -121,7 +121,7 @@ for i = 1:numSD
     f_PiTilde(piInd) = f_PiTilde(piInd) + cb{i}(cPrimal{i});
 end
 
-%% Extract matrices
+%% Extrahiere Matrizen
 cBskal_Delta=cell(numSD,1);
 cB_B = cell(numSD,1);
 cK_BB = cell(numSD,1);
@@ -144,16 +144,16 @@ for i = 1:numSD
     cK_PiB{i}(piInd,:) = cK{i}(cPrimal{i},cIDual{i}); 
 end
 
-%% Compute schurcomplement
+%% Berechne das Schurkomplement
 S_PiPi = K_PiPiTilde;
 for i = 1:numSD
     S_PiPi = S_PiPi - cK_PiB{i} *(cK_BB{i}\cK_PiB{i}');
 end
 
-%% create handle
+%% Erstelle function handle 
 hF = @(lambda) F(cB_B,cK_BB,cK_PiB,S_PiPi,lambda);
 
-%% compute d
+%% Berechne d
 f_B = cell2mat(cb_B);
 cb_B_trans = cellfun(@transpose,cb_B,'UniformOutput', false);
 d = apply_1(cB_B,cK_BB,cb_B_trans,1);
@@ -164,7 +164,7 @@ d = d - temp;
 
 %% Definiere Matrix U
 
-%% TODO: Matrix U siehe aufgabenstellung
+%% TODO: Matrix U siehe Aufgabenstellung
 
 % Vorarbeit
 edgesLM=zeros(numEdges,n_LM); % Gibt an, welche LM zu welcher Kante gehoeren
@@ -216,7 +216,7 @@ fprintf("#### FETI-DP ####\n")
 fprintf("Anzahl Iterationen: %i\n",iter)
 fprintf("Schaetzung Konditionszahl: %e\n",kappa_est)
 
-%% Extract solution u_i & plot
+%% Extrahiere Loesung u_i & plot
 
 if plot
     [cu,u_FETIDP_glob] = plotiter(lambda,iter,cB_B,cK_BB,cK_PiB,cb_B,cPrimalMap,...
@@ -275,7 +275,7 @@ function [cu,u_FETIDP_glob] = plotiter(vert,iter,cB_B,cK_BB,cK_PiB,cb_B,cPrimalM
 end
 
 
-%% Define functions 
+%% Definiere Hilfsfunktionen
 function y = apply_1(cB_B,cK_BB,cK_PiB,x)
     temp = (cB_B{1} * (cK_BB{1}\cK_PiB{1}')) * x;
     for i = 2:length(cB_B)
