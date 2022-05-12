@@ -1,4 +1,4 @@
-function [cu,u_FETIDP_glob] = fetidp(numSD,vert,numVert,vert__sd,tri__sd,edges,numEdges,numVertE,l2g__sd,f,dirichlet,true,VK,maxRho)
+function [cu,u_FETIDP_glob] = fetidp(numSD,vert,numVert,vert__sd,tri__sd,edges,numEdges,l2g__sd,f,dirichlet,VK,maxRhoSD,maxRhoVert,plot)
 
 %% Create logical vectors
 cDirichlet = cell(numSD,1); % Dirichlet Knoten
@@ -59,7 +59,7 @@ for i = 1:numSD
     i_ind = find(cDual{i});
     for j = 1:length(i_ind)
         s=cDualMap{i}(j);
-        cLM{s}=[cLM{s},[i;i_ind(j)]];
+        cLM{s}=[cLM{s},[i;i_ind(j)]]; % Enthaelt TG-Nummer und lokale Knotennummer
     end
 end
 
@@ -74,30 +74,25 @@ end
 
 %% Sprungoperator aufstellen: mit und ohne Skalierung
 row_ind_LM = 1;
-LMdualVerts=cell(n_LM,1); % Liste, die zu jedem LM die dualen globalen Knotennummern enthaelt
-Nx=cell(numLM,1);   % Liste der Teilgebiete, die LM verbindet
+Nx=cell(n_LM,1);   % Liste der Teilgebiete, die LM verbindet
 sumRho=zeros(length(cLM),1);
 for i = 1:length(cLM)
     cB{cLM{i}(1,1)}(row_ind_LM,cLM{i}(2,1)) = 1;
-    cBskal{cLM{i}(1,1)}(i,:)=cB{cLM{i}(1,1)}(i,:)*(rho(numTG)/sumRho); %jeweils rho des anderen Teilgebiets verwenden
-    LMdualVerts{i}=cDualMap{i}(cLM{i}(2,1));
     Nx{i}=cLM{i}(1,1);  
     for j = 2:size(cLM{i},2)
         cB{cLM{i}(1,j)}(row_ind_LM,cLM{i}(2,j)) = -1;
-        cBskal{cLM{i}(1,j)}(i,:)=cB{cLM{i}(1,j)}(i,:)*(rho(numTG_first)/sumRho);
         row_ind_LM = row_ind_LM + 1;
-        LMdualVerts{i}=[LMdualVerts{i};cDualMap{i}(cLM{i}(2,j))];
         Nx{i}=[Nx{i},cLM{i}(1,j)];  
     end
-    sumRho(i) = sum(maxRho(Nx{i})); 
+    sumRho(i) = sum(maxRhoSD(Nx{i})); 
 end
 
 
 row_ind_LM = 1;
 for i = 1:length(cLM)
-    cBskal{cLM{i}(1,1)}(i,:)=cB{cLM{i}(1,1)}(i,:)*(rho(numTG)/sumRho); %jeweils rho des anderen Teilgebiets verwenden
     for j = 2:size(cLM{i},2)
-        cBskal{cLM{i}(1,j)}(i,:)=cB{cLM{i}(1,j)}(i,:)*(rho(numTG_first)/sumRho);
+        cBskal{cLM{i}(1,1)}(i,:)=cB{cLM{i}(1,1)}(i,:)*(maxRhoSD(cLM{j}(1,j))/sumRho(i)); % jeweils rho des anderen Teilgebiets verwenden
+        cBskal{cLM{i}(1,j)}(i,:)=cB{cLM{i}(1,j)}(i,:)*(maxRhoSD(cLM{i}(1,1))/sumRho(i));
         row_ind_LM = row_ind_LM + 1;
     end   
 end
@@ -163,28 +158,16 @@ d = d - temp;
 
 
 %% Definiere Matrix U
-
-%% TODO: Matrix U siehe aufgabenstellung
-
-% Vorarbeit
-edgesLM=zeros(numEdges,n_LM); % Gibt an, welche LM zu welcher Kante gehoeren
-for i=1:numEdges % Iteriere ueber Kanten
-    eVerts=edges(i,:); % Globale Knotennummern der Kantenknoten
-    eDualVerts=mapDual(eVerts); % Duale Knotennummern der Kantenknoten
-    for j=1:n_LM % Iteriere ueber LM
-        % LMdualVerts enthaelt zu jedem LM die dualen Knotennummern
-        testMembership=ismember(eDualVerts,LMdualVerts{j});
-        if testMembership(1) || testMembership(2) % Einer der Kantenknoten gehoert zu diesem LM
-            edgesLM(i,j)=1;
+U=zeros(n_LM,numEdges);
+dualVertNum = find(dual); % Globale Knotennnummern der dualen Knoten
+for i = 1:numEdges % Iteriere ueber Kanten
+    for j = 1:n_LM % Iteriere ueber duale Knoten
+        xH = dualVertNum(j);
+        if ismember(xH,edges(i,:)) % Dualer Knoten gehoert zur Kante
+            U(i,j) = maxRhoVert(xH);
         end
     end 
 end
-edgesLM=logical(edgesLM); % logische Matrix
-
-% Bestimme U mithilfe von edgesLM
-U=zeros(n_LM,numEdges);
-U(edgesLM')=ones(n_LM,1);
-U=1./numVertE*U; % Fuege Skalierung hinzu
 
 %% Definiere Projektion P
 UFU =@(x) U'*F(cB_B,cK_BB,cK_PiB,S_PiPi,U*x);
@@ -195,7 +178,7 @@ P = @(x) U*invUFU(U'*F(cB_B,cK_BB,cK_PiB,S_PiPi,x));
 % Vorkonditionierer
 idVK= @(x) eye(size(x))*x;
 dirichletVK = @(x) dirVKfunction(numSD,cBskal_Delta,cK_DeltaDelta,cK_II,cK_DeltaI,x);
-deflationVK = @(x) idVK(dirichletVK(idVK(x)'-P(x)'))-P(dirichletVK(idVK(x)'-P(x)'));  % invM = dirichletVK
+deflationVK = @(x) (dirichletVK(idVK(x)'-P(x)'))-P(dirichletVK(idVK(x)'-P(x)'));  % invM = dirichletVK
 balancingVK = @(x) deflationVK(x)+U*((U'*F*U)\eye(size(U'*F*U)))*U'*x;
 
 
@@ -206,7 +189,7 @@ elseif strcmp('Balancing',VK) % Balancing-VK M^-1_BP
 elseif strcmp('Dirichlet',VK)  % Dirichlet-VK
     invM  = @(x) dirichletVK(x);   
  elseif strcmp('Identitaet',VK)    % Identitaet
-    invM  = @(x) idVKVK(x);  
+    invM  = @(x) idVK(x);  
  end
 
 %% PCG

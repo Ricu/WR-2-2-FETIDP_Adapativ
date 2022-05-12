@@ -1,4 +1,4 @@
-function [x__sd,tri__sd,l2g__sd] = meshPartSquare(N,x,tri)
+function [x__sd,tri__sd,l2g__sd,logicalTri__sd] = meshPartSquare(N,x,tri)
 % Gitterpartitionierung von [0,1]^2 in N x N Teilquadrate.
 %
 % INPUT:
@@ -10,6 +10,8 @@ function [x__sd,tri__sd,l2g__sd] = meshPartSquare(N,x,tri)
 %    x__sd:   Cell array; lokale Punkteliste
 %    tri__sd: Cell array; lokale Elementliste
 %    l2g__sd: Cell array; local-to-global-map
+%    logicalTri__sd: Cell array; logische Liste, welche Dreiecke in welchem
+%    TG sind
    %
     % Berechne den Schwerpunkt der Dreiecke.
     c = (x(tri(:,1),:) + x(tri(:,2),:) + x(tri(:,3),:))/3;
@@ -20,9 +22,9 @@ function [x__sd,tri__sd,l2g__sd] = meshPartSquare(N,x,tri)
     x__sd = cell(N^2,1);
     tri__sd = cell(N^2,1);
     l2g__sd = cell(N^2,1);
+    logicalTri__sd  = cell(N^2,1);
     cnt = 0;
     
-    globInd__sd = cell(N^2,1);
     for i = 1:N
         for j = 1:N
             cnt = cnt + 1;
@@ -30,6 +32,7 @@ function [x__sd,tri__sd,l2g__sd] = meshPartSquare(N,x,tri)
             % Finde alle Dreiecke im Teilgebiet (i,j).
             b = (c(:,1) >= lin(j)-1e-13) & (c(:,1) <= lin(j+1)+1e-13) & ...
                 (c(:,2) >= lin(i)-1e-13) & (c(:,2) <= lin(i+1)+1e-13);
+            logicalTri__sd{cnt} = b;    
             
             tri__sd{cnt} = tri(b,:); % globale Nummerierung
             
