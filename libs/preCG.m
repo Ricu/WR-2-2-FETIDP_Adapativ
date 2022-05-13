@@ -1,5 +1,5 @@
-function [x,resid,iter,kappa_est,alpha,beta] = preCG(A,L,b,x0,tol,ploth)
-invM = @(x) L'\(L\x);
+function [x,resid,iter,kappa_est,alpha,beta] = preCG(A,invM,b,x0,tol,ploth)
+
 rk = b - A(x0);
 zk = invM(rk);
 pk = zk;
