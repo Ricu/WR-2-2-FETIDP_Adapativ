@@ -170,8 +170,8 @@ for i = 1:numEdges % Iteriere ueber Kanten
 end
 
 %% Definiere Projektion P
-UFU =@(x) U'*F(cB_B,cK_BB,cK_PiB,S_PiPi,U*x);
-invUFU=@(x) UFU(x)\eye(size(UFU(x))); % TODO: Funktioniert das so?!
+UFU =@(x) U'*F(cB_B,cK_BB,cK_PiB,S_PiPi,U*x); % TODO: UFU explizit aufstellen?!
+invUFU=@(x) UFU(x)\eye(size(UFU(x))); 
 P = @(x) U*invUFU(U'*F(cB_B,cK_BB,cK_PiB,S_PiPi,x));
 
 %% Definiere Vorkonditionierer

@@ -7,10 +7,9 @@ xk = x0;
 iter = 0;
 alpha_vec = zeros(1000,1);
 beta_vec = zeros(1000,1);
-normb = norm(b);
 
 
-while norm(rk)/normb > tol
+while norm(zk)/norm(xk) > tol
     if nargin > 5 && iter < 3
         ploth(xk,iter);
     end
