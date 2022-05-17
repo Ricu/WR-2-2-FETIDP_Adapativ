@@ -166,7 +166,7 @@ hF = @(lambda) F(cB_B,cK_BB,cK_PiB,S_PiPi,lambda);
 % end
 % F2 = temp3;     %B_B*K_BB^-1*B_B^T
 % F = F1+F2;
-
+% 
 % K_BB = blkdiag(cK_BB{:});
 % K_PiB = cell2mat(cK_PiB');
 % K_Tilde = [K_BB,K_PiB';
@@ -190,25 +190,22 @@ for i = 1:numEdges % Iteriere ueber Kanten
     for j = 1:n_LM % Iteriere ueber duale Knoten
         xH = dualVertNum(j);
         if ismember(xH,edges(i,:)) % Dualer Knoten gehoert zur Kante
-            U(i,j) = maxRhoVert(xH);
+            U(j,i) = maxRhoVert(xH);
         end
     end
 end
 
-
 %% Definiere Projektion P
-UFU = @(x) U'*F(cB_B,cK_BB,cK_PiB,S_PiPi,U*x); % TODO: UFU explizit
-% aufstellen?! % F explizit aufstellen?!
-%UFU = U'*F*U;
-invUFU = @(x) UFU(x)\eye(size(UFU(x)));
+UFU = U'*hF(U); 
+invUFU = @(x) (UFU\eye(size(UFU)))*x;
 P = @(x) U*invUFU(U'*F(cB_B,cK_BB,cK_PiB,S_PiPi,x));
 
 %% Definiere Vorkonditionierer
 % Vorkonditionierer
 idVK= @(x) eye(size(x,1),size(x,1))*x;
 dirichletVK = @(x) dirVKfunction(numSD,cBskal_Delta,cK_DeltaDelta,cK_II,cK_DeltaI,x);
-deflationVK = @(x) (dirichletVK(idVK(x)'-P(x)'))-P(dirichletVK(idVK(x)'-P(x)'));  % invM = dirichletVK
-balancingVK = @(x) deflationVK(x)+U*((U'*F*U)\eye(size(U'*F*U)))*U'*x;
+deflationVK = @(x) dirichletVK(idVK(x)-P(x))-P(dirichletVK(idVK(x)-P(x)));  % invM = dirichletVK
+balancingVK = @(x) deflationVK(x)+U*invUFU(U'*x);
 
 
 if strcmp('Deflation',VK)  % Deflation-VK M^-1_PP
