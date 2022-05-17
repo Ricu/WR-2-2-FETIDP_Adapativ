@@ -187,14 +187,15 @@ cEdgesSD = cell(1,1);
 for i = 1:length(cLM)
     cEdgesSD{1} = [cEdgesSD{1};cLM{i}(1,:)];
 end
-edgesSD = unique(cEdgesSD{1},'rows'); % Enthaelt die beiden angrenzenden Teilgebietsnummern pro TG-Kante
+edgesSD = unique(cEdgesSD{1},'rows','stable'); % Enthaelt die beiden angrenzenden Teilgebietsnummern pro TG-Kante
 numEdges = size(edgesSD,1);
 
 edgesDualAll = cell(size(edgesSD));
 edgesDual = cell(numEdges,1);
 for i = 1:numEdges % Iteriere ueber TG-Kanten
     for j = 1:size(edgesSD,2) % Iteriere ueber angrenzende TG
-        edgesDualAll{i,j} = mapDual(l2g__sd{edgesSD(i,j)}(cDual{edgesSD(i,j)})); % Enthaelt fuer jedes angrenzende TG der Kante die dualen Knotennummern    
+        SD = edgesSD(i,j);
+        edgesDualAll{i,j} = mapDual(l2g__sd{SD}(cDual{SD})); % Enthaelt fuer jedes angrenzende TG der Kante die dualen Knotennummern    
     end
     edgesDual{i} = intersect(edgesDualAll{i,1},edgesDualAll{i,2}); % Enthaelt die dualen Knoten der TG-Kante
 end
