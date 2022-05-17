@@ -12,7 +12,7 @@ function [x__sd,tri__sd,l2g__sd,logicalTri__sd] = meshPartSquare(N,x,tri)
 %    l2g__sd: Cell array; local-to-global-map
 %    logicalTri__sd: Cell array; logische Liste, welche Dreiecke in welchem
 %    TG sind
-   %
+%
     % Berechne den Schwerpunkt der Dreiecke.
     c = (x(tri(:,1),:) + x(tri(:,2),:) + x(tri(:,3),:))/3;
     

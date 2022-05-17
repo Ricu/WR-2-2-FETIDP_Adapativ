@@ -18,6 +18,7 @@ yLim = [0,1];
 [vert,tri] = genMeshSquare(N,n); % Erstelle Knoten- und Elementliste
 numVert=size(vert,1);   numTri=size(tri,1); % Anzahl Knoten und Dreiecke
 [vert__sd,tri__sd,l2g__sd,logicalTri__sd] = meshPartSquare(N,vert,tri); % Erstelle Knoten- und Elementlisten pro Teilgebiet
+% und logische Liste, welche Dreiecke in welchem TG sind
 % Dirichletrand fehlt in Aufgabenstellung?!
 dirichlet = or(ismember(vert(:,1),vertLim), ismember(vert(:,2),yLim)); % Dirichletknoten, logischer Vektor
 [edges,elements_byEdgeIDs,adjacentElements__e] = mesh_edgeList(tri); % Erstelle Kantenliste, etc.
