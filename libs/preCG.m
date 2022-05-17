@@ -1,15 +1,17 @@
 function [x,resid,iter,kappa_est,alpha,beta] = preCG(A,invM,b,x0,tol,ploth)
 
 rk = b - A(x0);
-zk = invM(rk);
+z0 = invM(rk);
+zk = z0;
 pk = zk;
 xk = x0;
 iter = 0;
 alpha_vec = zeros(1000,1);
 beta_vec = zeros(1000,1);
 
-
-while norm(zk)/norm(xk) > tol
+cnt = 1;
+while norm(zk)/norm(z0) > tol
+    cnt = cnt+1
     if nargin > 5 && iter < 3
         ploth(xk,iter);
     end

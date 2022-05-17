@@ -166,7 +166,7 @@ hF = @(lambda) F(cB_B,cK_BB,cK_PiB,S_PiPi,lambda);
 % end
 % F2 = temp3;     %B_B*K_BB^-1*B_B^T
 % F = F1+F2;
-% 
+%
 % K_BB = blkdiag(cK_BB{:});
 % K_PiB = cell2mat(cK_PiB');
 % K_Tilde = [K_BB,K_PiB';
@@ -182,21 +182,42 @@ temp = f_PiTilde - apply_2(cb_B_trans,cK_BB,cK_PiB,1);
 temp = apply_1(cB_B,cK_BB,cK_PiB,S_PiPi \ temp);
 d = d - temp;
 
+%% Erstelle Kantenlisten
+cEdgesSD = cell(1,1);
+for i = 1:length(cLM)
+    cEdgesSD{1} = [cEdgesSD{1};cLM{i}(1,:)];
+end
+edgesSD = unique(cEdgesSD{1},'rows'); % Enthaelt die beiden angrenzenden Teilgebietsnummern pro TG-Kante
+numEdges = size(edgesSD,1);
+
+edgesDualAll = cell(size(edgesSD));
+edgesDual = cell(numEdges,1);
+for i = 1:numEdges % Iteriere ueber TG-Kanten
+    for j = 1:size(edgesSD,2) % Iteriere ueber angrenzende TG
+        edgesDualAll{i,j} = mapDual(l2g__sd{edgesSD(i,j)}(cDual{edgesSD(i,j)})); % Enthaelt fuer jedes angrenzende TG der Kante die dualen Knotennummern    
+    end
+    edgesDual{i} = intersect(edgesDualAll{i,1},edgesDualAll{i,2}); % Enthaelt die dualen Knoten der TG-Kante
+end
+
 
 %% Definiere Matrix U
-U=zeros(n_LM,numEdges);
-dualVertNum = find(dual); % Globale Knotennnummern der dualen Knoten
+U = zeros(n_LM,numEdges);
+% dualVertNum = find(dual); % Globale Knotennnummern der dualen Knoten
 for i = 1:numEdges % Iteriere ueber Kanten
-    for j = 1:n_LM % Iteriere ueber duale Knoten
-        xH = dualVertNum(j);
-        if ismember(xH,edges(i,:)) % Dualer Knoten gehoert zur Kante
-            U(j,i) = maxRhoVert(xH);
-        end
+    for j = edgesDual{i}    % Iteriere ueber duale Knoten der Kante
+        U(j,i) = maxRhoVert(j);
     end
+    
+%     for j = 1:n_LM % Iteriere ueber duale Knoten der Kante
+%         xH = dualVertNum(j);
+%         if ismember(xH,edgesDual{i}) % Dualer Knoten gehoert zur Kante
+%             U(j,i) = maxRhoVert(xH);
+%         end
+%     end
 end
 
 %% Definiere Projektion P
-UFU = U'*hF(U); 
+UFU = U'*hF(U);
 invUFU = @(x) (UFU\eye(size(UFU)))*x;
 P = @(x) U*invUFU(U'*F(cB_B,cK_BB,cK_PiB,S_PiPi,x));
 
@@ -220,7 +241,8 @@ end
 
 %% PCG
 tol = 10^(-8);
-[lambda,~,iter,kappa_est] = preCG(hF,invM,d,zeros(n_LM,1),tol);
+x0 = zeros(n_LM,1);
+[lambda,~,iter,kappa_est] = preCG(hF,invM,d,x0,tol);
 fprintf("#### FETI-DP ####\n")
 fprintf("Anzahl Iterationen: %i\n",iter)
 fprintf("Schaetzung Konditionszahl: %e\n",kappa_est)
@@ -286,27 +308,27 @@ end
 
 %% Definiere Hilfsfunktionen
 function y = apply_1(cB_B,cK_BB,cK_PiB,x)
-    temp = (cB_B{1} * (cK_BB{1}\cK_PiB{1}')) * x;
-    for i = 2:length(cB_B)
-        temp = temp + (cB_B{i} * (cK_BB{i}\cK_PiB{i}')) * x;
-    end
-    y = temp;
+temp = (cB_B{1} * (cK_BB{1}\cK_PiB{1}')) * x;
+for i = 2:length(cB_B)
+    temp = temp + (cB_B{i} * (cK_BB{i}\cK_PiB{i}')) * x;
+end
+y = temp;
 end
 
 function y = apply_2(cB_B,cK_BB,cK_PiB,x)
-    temp = (cK_PiB{1} * (cK_BB{1}\cB_B{1}')) * x;
-    for i = 2:length(cB_B)
-        temp = temp + (cK_PiB{i} * (cK_BB{i}\cB_B{i}')) * x;
-    end
-    y = temp;
+temp = (cK_PiB{1} * (cK_BB{1}\cB_B{1}')) * x;
+for i = 2:length(cB_B)
+    temp = temp + (cK_PiB{i} * (cK_BB{i}\cB_B{i}')) * x;
+end
+y = temp;
 end
 
 function y = F(cB_B,cK_BB,cK_PiB,S_PiPi,x)
-    temp1 = S_PiPi \ apply_2(cB_B,cK_BB,cK_PiB,x);  %S_PiPi^-1*K_PiB*K_BB^-1*B_B^T * x
-	temp1 = apply_1(cB_B,cK_BB,cK_PiB,temp1);       %B_B*K_BB^-1*K_BPi * temp1
+temp1 = S_PiPi \ apply_2(cB_B,cK_BB,cK_PiB,x);  %S_PiPi^-1*K_PiB*K_BB^-1*B_B^T * x
+temp1 = apply_1(cB_B,cK_BB,cK_PiB,temp1);       %B_B*K_BB^-1*K_BPi * temp1
 
-    temp2 = apply_1(cB_B,cK_BB,cB_B,x);             %B_B*K_BB^-1*B_B^T * x
-    y = temp1 + temp2;
+temp2 = apply_1(cB_B,cK_BB,cB_B,x);             %B_B*K_BB^-1*B_B^T * x
+y = temp1 + temp2;
 end
 
 %Schurkomplement

@@ -2,8 +2,8 @@ clear; clc;
 addpath('libs')
 
 %% Definiere Vorkonditionierer
- VK={'Deflation'};
-% VK={'Balancing'};
+% VK={'Deflation'};
+ VK={'Balancing'};
 % VK = {'Identitaet'};
 % VK={'Dirichlet'};
 
