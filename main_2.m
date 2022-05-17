@@ -2,9 +2,7 @@ clear; clc;
 addpath('libs')
 
 %% Definiere Vorkonditionierer
-% VK={'Deflation'};
- VK={'Balancing'};
-% VK = {'Identitaet'};
+VK={'Deflation'};
 % VK={'Dirichlet'};
 
 %% Create grid
@@ -70,17 +68,21 @@ patch('vertices',vert,'faces',tri(indElementsCanal,:),'edgecol','k','facecol',[.
 
 %% Loesen des Systems mit FETI-DP erstmal Identitaet
 [cu,u_FETIDP_glob] = fetidp(numSD,vert,numVert,vert__sd,tri__sd,edges,numEdges,l2g__sd,f,dirichlet,VK,maxRhoSD,maxRhoVert,true);
-                
+%ToDo: Gebe fuer M_PP^(-1) die benoetigte Anzahl an Nebenbedingungen der Koeffizientenfunktion an
+
+
 %% compare residuals
-[K,~,b] = assemble(tri,vert,1,f);
-K_II = K(~dirichlet,~dirichlet);
-b_I = b(~dirichlet);
+if VK == 'Deflation'
+    [K,~,b] = assemble(tri,vert,1,f);
+    K_II = K(~dirichlet,~dirichlet);
+    b_I = b(~dirichlet);
 
-u_global = zeros(size(vert,1),1);
-u_global(~dirichlet) = K_II\b_I;
+    u_global = zeros(size(vert,1),1);
+    u_global(~dirichlet) = K_II\b_I;
 
-diff = u_FETIDP_glob-u_global;
-fprintf("Norm der Differenz: %e\n", norm(diff))
+    diff = u_FETIDP_glob-u_global;
+    fprintf("Norm der Differenz fuer M_PP^(-1): %e\n", norm(diff))
+end
 
 % %% Global system PCG
 % tol = 10^(-8);

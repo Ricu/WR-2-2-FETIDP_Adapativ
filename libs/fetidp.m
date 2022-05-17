@@ -221,7 +221,7 @@ end
 %% PCG
 tol = 10^(-8);
 [lambda,~,iter,kappa_est] = preCG(hF,invM,d,zeros(n_LM,1),tol);
-fprintf("#### FETI-DP ####\n")
+fprintf("#### FETI-DP #### VK: %i\n", VK)
 fprintf("Anzahl Iterationen: %i\n",iter)
 fprintf("Schaetzung Konditionszahl: %e\n",kappa_est)
 

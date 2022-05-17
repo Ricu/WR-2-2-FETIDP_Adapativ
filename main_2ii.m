@@ -2,9 +2,7 @@ clear; clc;
 addpath('libs')
 
 %% Definiere Vorkonditionierer
-% VK={'Deflation'};
- VK={'Balancing'};
-% VK = {'Identitaet'};
+VK={'Deflation'};
 % VK={'Dirichlet'};
 
 %% Create grid

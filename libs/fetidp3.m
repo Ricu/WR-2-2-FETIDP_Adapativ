@@ -212,12 +212,8 @@ balancingVK = @(x) deflationVK(x)+U*((U'*F*U)\eye(size(U'*F*U)))*U'*x;
 
 if strcmp('Deflation',VK)  % Deflation-VK M^-1_PP
     invM  = @(x) deflationVK(x);
-elseif strcmp('Balancing',VK) % Balancing-VK M^-1_BP
-    invM  = @(x) balancingVK(x);
 elseif strcmp('Dirichlet',VK)  % Dirichlet-VK
     invM  = @(x) dirichletVK(x);   
- elseif strcmp('Identitaet',VK)    % Identitaet
-    invM  = @(x) idVK(x);  
  end
 
 %% PCG
