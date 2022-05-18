@@ -1,4 +1,4 @@
-function [cu,u_FETIDP_glob] = fetidp(numSD,vert,numVert,vert__sd,tri__sd,edges,numEdges,l2g__sd,f,dirichlet,VK,maxRhoSD,maxRhoVert,plot)
+function [cu,u_FETIDP_glob] = fetidp(numSD,vert,numVert,vert__sd,tri__sd,l2g__sd,f,dirichlet,VK,maxRhoSD,maxRhoVert,plot)
 
 %% Create logical vectors
 cDirichlet = cell(numSD,1); % Dirichlet Knoten
@@ -243,7 +243,7 @@ end
 tol = 10^(-8);
 x0 = zeros(n_LM,1);
 [lambda,~,iter,kappa_est] = preCG(hF,invM,d,x0,tol);
-fprintf("#### FETI-DP ####\n")
+fprintf("Vorkonditionierer: %s\n",VK)
 fprintf("Anzahl Iterationen: %i\n",iter)
 fprintf("Schaetzung Konditionszahl: %e\n",kappa_est)
 

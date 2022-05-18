@@ -70,7 +70,7 @@ patch('vertices',vert,'faces',tri,'edgecol','k','facecol',[1,1,1]); hold on; axi
 patch('vertices',vert,'faces',tri(indElementsCanal,:),'edgecol','k','facecol',[.8,.9,1]);
 
 %% Loesen des Systems mit FETI-DP erstmal Identitaet
-[cu,u_FETIDP_glob] = fetidp(numSD,vert,numVert,vert__sd,tri__sd,edges,numEdges,l2g__sd,f,dirichlet,VK,maxRhoSD,maxRhoVert,true);
+[cu,u_FETIDP_glob] = fetidp(numSD,vert,numVert,vert__sd,tri__sd,l2g__sd,f,dirichlet,VK,maxRhoSD,maxRhoVert,true);
                 
 %% compare residuals
 [K,~,b] = assemble(tri,vert,1,f);
