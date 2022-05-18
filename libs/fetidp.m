@@ -219,13 +219,14 @@ end
 UFU = U'*hF(U);
 invUFU = UFU\eye(size(UFU));
 P = @(x) U*invUFU*U'*F(cB_B,cK_BB,cK_PiB,S_PiPi,x);
+P_transpose = @(x) F(cB_B,cK_BB,cK_PiB,S_PiPi,U*invUFU*U'*x);
 
 %% Definiere Vorkonditionierer
 % Vorkonditionierer
 idVK= @(x) eye(size(x,1),size(x,1))*x;
 dirichletVK = @(x) dirVKfunction(numSD,cBskal_Delta,cK_DeltaDelta,cK_II,cK_DeltaI,x);
-deflationVK = @(x) dirichletVK(idVK(x)-P(x))-P(dirichletVK(idVK(x)-P(x)));  % invM = dirichletVK
-balancingVK = @(x) deflationVK(x)+U*invUFU(U'*x);
+deflationVK = @(x) dirichletVK(idVK(x)-P_transpose(x))-P(dirichletVK(idVK(x)-P_transpose(x)));  % invM = dirichletVK
+balancingVK = @(x) deflationVK(x)+U*invUFU*U'*x;
 
 
 if strcmp('Deflation',VK)  % Deflation-VK M^-1_PP
