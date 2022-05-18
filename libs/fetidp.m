@@ -191,36 +191,34 @@ edgesSD = unique(cEdgesSD{1},'rows','stable'); % Enthaelt die beiden angrenzende
 numEdges = size(edgesSD,1);
 
 edgesDualAll = cell(size(edgesSD));
+edgesDualGlobalAll = cell(size(edgesSD));
 edgesDual = cell(numEdges,1);
+edgesDualGlobal = cell(numEdges,1);
 for i = 1:numEdges % Iteriere ueber TG-Kanten
     for j = 1:size(edgesSD,2) % Iteriere ueber angrenzende TG
         SD = edgesSD(i,j);
-        edgesDualAll{i,j} = mapDual(l2g__sd{SD}(cDual{SD})); % Enthaelt fuer jedes angrenzende TG der Kante die dualen Knotennummern    
+        edgesDualGlobalAll{i,j} = l2g__sd{SD}(cDual{SD});   % Enthaelt fuer jedes angrenzende TG die dualen Knoten (GLOBALE Knotennummern)
     end
-    edgesDual{i} = intersect(edgesDualAll{i,1},edgesDualAll{i,2}); % Enthaelt die dualen Knoten der TG-Kante
+    edgesDualGlobal{i} = intersect(edgesDualGlobalAll{i,1},edgesDualGlobalAll{i,2}); % Enthaelt fuer die TG-Kanten die dualen Knoten (GLOBALE Knotennummern)
+    edgesDual{i} = mapDual(edgesDualGlobal{i}); % Enthaelt fuer die TG-Kanten die dualen Knoten (DUALE Knotennummern)
 end
 
 
 %% Definiere Matrix U
 U = zeros(n_LM,numEdges);
-% dualVertNum = find(dual); % Globale Knotennnummern der dualen Knoten
 for i = 1:numEdges % Iteriere ueber Kanten
-    for j = edgesDual{i}    % Iteriere ueber duale Knoten der Kante
-        U(j,i) = maxRhoVert(j);
+    cnt=1;
+    for j = edgesDual{i}'    % Iteriere ueber duale Knoten der Kante (DUALE Knotennummern)
+        U(j,i) = maxRhoVert(edgesDualGlobal{i}(cnt));
+        cnt = cnt+1;
     end
-    
-%     for j = 1:n_LM % Iteriere ueber duale Knoten der Kante
-%         xH = dualVertNum(j);
-%         if ismember(xH,edgesDual{i}) % Dualer Knoten gehoert zur Kante
-%             U(j,i) = maxRhoVert(xH);
-%         end
-%     end
-end
+end    
+
 
 %% Definiere Projektion P
 UFU = U'*hF(U);
-invUFU = @(x) (UFU\eye(size(UFU)))*x;
-P = @(x) U*invUFU(U'*F(cB_B,cK_BB,cK_PiB,S_PiPi,x));
+invUFU = UFU\eye(size(UFU));
+P = @(x) U*invUFU*U'*F(cB_B,cK_BB,cK_PiB,S_PiPi,x);
 
 %% Definiere Vorkonditionierer
 % Vorkonditionierer
