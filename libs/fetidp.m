@@ -242,8 +242,15 @@ end
 %% PCG
 tol = 10^(-8);
 x0 = zeros(n_LM,1);
-[lambda,~,iter,kappa_est] = preCG(hF,invM,d,x0,tol);
-fprintf("Vorkonditionierer: %s\n",VK)
+[lambda,~,iter,kappa_est] = preCG(hF,invM,d,x0,tol,P,VK);
+
+
+if strcmp('Deflation',VK)  % Deflation-VK M^-1_PP
+    lambdaBar = U*invUFU*U'*d;
+    lambda = lambdaBar+lambda;
+end
+
+fprintf("Vorkonditionierer: %s\n",VK{1})
 fprintf("Anzahl Iterationen: %i\n",iter)
 fprintf("Schaetzung Konditionszahl: %e\n",kappa_est)
 

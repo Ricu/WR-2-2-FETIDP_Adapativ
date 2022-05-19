@@ -1,4 +1,4 @@
-function [x,resid,iter,kappa_est,alpha,beta] = preCG(A,invM,b,x0,tol,ploth)
+function [x,resid,iter,kappa_est,alpha,beta] = preCG(A,invM,b,x0,tol,P,VK,ploth)
 
 rk = b - A(x0);
 z0 = invM(rk);
@@ -9,18 +9,19 @@ iter = 0;
 alpha_vec = zeros(1000,1);
 beta_vec = zeros(1000,1);
 
-cnt = 1;
 while norm(zk)/norm(z0) > tol
-    cnt = cnt+1
-    if nargin > 5 && iter < 3
-        ploth(xk,iter);
-    end
+%     if nargin > 5 && iter < 3
+%         ploth(xk,iter);
+%     end
     ak = (rk'*zk) / (pk'*A(pk));
     xk = xk + ak * pk;
     rkp1 = rk - ak * A(pk);
     zkp1 = invM(rkp1);
     bk = (zkp1' * rkp1)/(zk' * rk);
     pk = zkp1 + bk * pk;
+    if strcmp('Deflation',VK)  % Deflation-VK M^-1_PP
+        pk = pk-P(pk);
+    end
     rk = rkp1;
     zk = zkp1;
     iter = iter+1;
