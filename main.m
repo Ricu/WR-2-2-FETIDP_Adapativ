@@ -2,12 +2,13 @@ clear; clc;
 addpath('libs')
 
 %% Definiere Vorkonditionierer
+VK = {'Deflation','Balancing','Dirichlet','Identitaet'};
 % VK={'Deflation'};
- VK={'Balancing'};
+% VK={'Balancing'};
 % VK = {'Identitaet'};
 % VK={'Dirichlet'};
 
-%% Create grid
+%% Erstelle das Gitter
 n = 10; % 2*n^2 Elemente pro Teilgebiet
 N = 3;  % Partition in NxN quadratische Teilgebiete
 numSD = N^2; % Anzahl Teilgebiete
@@ -26,8 +27,9 @@ numEdges=size(edges,1); % Anzahl Kanten
 
 %% PDE
 f = @(vert,y) ones(size(vert));   % Rechte Seite der DGL
-% Definiere Koeffizientenfunktion
-pho = ones(numTri,1);
+
+%% Definiere Koeffizientenfunktion (pro Element)
+rhoTri = ones(numTri,1);
 % Definiere Kanal
 xMin=14/30; xMax=16/30;
 yMin=3/30;  yMax=27/30;
@@ -36,52 +38,77 @@ numVertCanal = 1:numVert;
 numVertCanal = numVertCanal(indVertCanal); % Knotennummern der Knoten, die im Kanal liegen
 for i=1:numTri % Iteriere ueber die Elemente
     if ismember(tri(i,:),numVertCanal) % Alle Knoten des Elements liegen im Kanal
-        pho(i)=10^6;    % Im Kanal entspricht die Koeffizientenfunktion 10^6
+        rhoTri(i)=10^6;    % Im Kanal entspricht die Koeffizientenfunktion 10^6
     end
 end
-indElementsCanal = pho > 1; % Logischer Vektor, welche Elemente im Kanal liegen
+indElementsCanal = rhoTri > 1; % Logischer Vektor, welche Elemente im Kanal liegen
 
 %% Definiere maximalen Koeffizienten pro TG 
+rhoTriSD = cell(numSD,1);
 maxRhoSD = zeros(numSD,1);
 for i = 1:numSD
-    maxRhoSD(i) = max(pho(logicalTri__sd{i}));
+    rhoTriSD{i} = rhoTri(logicalTri__sd{i});
+    maxRhoSD(i) = max(rhoTriSD{i});
 end
 
 %% Definiere maximalen Koeffizienten pro Knoten
 maxRhoVert = zeros(numVert,1);
-vertTris = cell(numVert,1); % Enthaelt fuer jeden Knoten die Dreiecke in denen er liegt
+vertTris = cell(numVert,1); 
 for i = 1:numVert % Iteriere ueber Knoten
     iVec = i*ones(1,size(tri,2));
     cnt = 1;
     for j = 1:numTri % Iteriere ueber Dreiecke
         testMembership = ismember(iVec,tri(j,:)); 
         if nnz(testMembership) > 1    % Pruefe, ob Knoten im Dreieck liegt
-            vertTris{i}(cnt) = j;
+            vertTris{i}(cnt) = j;   % Enthaelt fuer jeden Knoten die Dreiecke in denen er liegt
             cnt = cnt+1;
         end
     end
-    maxRhoVert(i) = max(pho(vertTris{i}));
+    maxRhoVert(i) = max(rhoTri(vertTris{i}));
 end
 
-
 %% Plotten des Gitters mit Kanal
-figure()
+figure("Name","Triangulierung des Gebiets mit Koeffizientenfunktion");
 patch('vertices',vert,'faces',tri,'edgecol','k','facecol',[1,1,1]); hold on; axis equal tight;
 patch('vertices',vert,'faces',tri(indElementsCanal,:),'edgecol','k','facecol',[.8,.9,1]);
+legend('\rho = 1','\rho = 10^6')
+title("Triangulierung mit Koeffizientenfunktion")
 
 %% Loesen des Systems mit FETI-DP erstmal Identitaet
-[cu,u_FETIDP_glob] = fetidp(numSD,vert,numVert,vert__sd,tri__sd,l2g__sd,f,dirichlet,VK,maxRhoSD,maxRhoVert,true);
-                
-%% compare residuals
-[K,~,b] = assemble(tri,vert,1,f);
+[cu,u_FETIDP_glob,lambda,iter,kappa_est] = fetidp(numSD,vert,numVert,vert__sd,tri__sd,l2g__sd,f,dirichlet,VK,rhoTri,rhoTriSD,maxRhoVert,vertTris,logicalTri__sd,true);
+
+%% Vergleich der Loesung mit Referenzloesung
+% Als Referenzloesung dient die Loesung des global assemblierten Sysmtems
+% mit Backslash-Operator
+[K,~,b] = assemble(tri,vert,1,f,rhoTri);
 K_II = K(~dirichlet,~dirichlet);
 b_I = b(~dirichlet);
 
 u_global = zeros(size(vert,1),1);
 u_global(~dirichlet) = K_II\b_I;
 
-diff = u_FETIDP_glob-u_global;
-fprintf("Norm der Differenz: %e\n", norm(diff))
+diff = cell(length(VK),1);
+for i=1:length(VK)
+    diff{i} = norm(u_FETIDP_glob{i}-u_global);
+end
+
+%% Ergebnistabelle
+T_results = cell2table([iter';kappa_est';diff'],"RowNames",["Anzahl Iterationen","Konditionszahl","Abweichung von Referenzloesung"],"VariableNames",VK)
+
+%% Plot der Loesungen
+
+figure("Name","Loesungen fuer verschiedene Vorkonditionierer")
+for j=1:length(VK)
+    subplot(2,2,j)
+    hold on
+    for i = 1:length(tri__sd)
+        trisurf(tri__sd{i},vert__sd{i}(:,1),vert__sd{i}(:,2),cu{j}{i});
+    end
+    xlabel("x"); ylabel("y"); zlabel("z");
+    title(sprintf("Finale Loesung: %s-VK",VK{j}));
+    view(3)
+    hold off
+end
 
 % %% Global system PCG
 % tol = 10^(-8);
@@ -90,9 +117,3 @@ fprintf("Norm der Differenz: %e\n", norm(diff))
 % fprintf("#### Global assembliertes System ####\n")
 % fprintf("Anzahl Iterationen: %i\n",iter)
 % fprintf("Schaetzung Konditionszahl: %e\n",kappa_est)
-
-
-% %% Teil b)
-% ploth = @(lambda,iter) plotiter(lambda,iter,cB_B,cK_BB,cK_PiB,cb_B,cPrimalMap, ...
-%                                 l2g__sd,cPrimal,cIDual,S_PiPi,f_PiTilde,f_B,tri__sd,vert__sd);
-% % preCG(hF,speye(n_LM),d,zeros(n_LM,1),tol,ploth);

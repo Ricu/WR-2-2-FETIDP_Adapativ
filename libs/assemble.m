@@ -1,4 +1,4 @@
-function [K,M,b] = assemble(tri,x,order,f)
+function [K,M,b] = assemble(tri,x,order,f,rhoTri)
 % Number of x and base functions
 numElements = size(tri,1);
 numBaseFun = (order+2)*(order+1)/2;
@@ -28,6 +28,7 @@ end
 for i = 1:size(tri,1)
     [B,d]=aff_map(x,tri(i,:));
     [K_T,M_T,b_T] = getMatrices(B,d,f,phi,d_phi,quad_low,quad_high);
+    K_T = rhoTri(i)*K_T; % Koeffizienten in Elementsteifigkeitsmatrix einbinden
     
     % Assignments for sparse()
     iIndex((i-1)*nBF2+1:i*nBF2) = reshape(repmat(tri(i,:),numBaseFun,1),nBF2,1);

@@ -1,4 +1,4 @@
-function [cu,u_FETIDP_glob] = fetidp(numSD,vert,numVert,vert__sd,tri__sd,l2g__sd,f,dirichlet,VK,maxRhoSD,maxRhoVert,plot)
+function [cu,u_FETIDP_glob,lambda,iter,kappa_est] = fetidp(numSD,vert,numVert,vert__sd,tri__sd,l2g__sd,f,dirichlet,VK,rhoTri,rhoTriSD,maxRhoVert,vertTris,logicalTri__sd,plot)
 
 %% Create logical vectors
 cDirichlet = cell(numSD,1); % Dirichlet Knoten
@@ -72,38 +72,44 @@ for i = 1:numSD
     cBskal{i}=sparse(n_LM,length(vert__sd{i}));
 end
 
-%% Sprungoperator aufstellen: mit und ohne Skalierung
+%% Sprungoperator aufstellen: ohne Skalierung
 row_ind_LM = 1;
-Nx=cell(n_LM,1);   % Liste der Teilgebiete, die LM verbindet
-sumRho=zeros(length(cLM),1);
 for i = 1:length(cLM)
     cB{cLM{i}(1,1)}(row_ind_LM,cLM{i}(2,1)) = 1;
-    Nx{i}=cLM{i}(1,1);
     for j = 2:size(cLM{i},2)
         cB{cLM{i}(1,j)}(row_ind_LM,cLM{i}(2,j)) = -1;
         row_ind_LM = row_ind_LM + 1;
-        Nx{i}=[Nx{i},cLM{i}(1,j)];
     end
-    sumRho(i) = sum(maxRhoSD(Nx{i}));
 end
 
-
+%% Sprungoperator aufstellen: mit Skalierung
+% Definiere maximalen Koeffizienten pro dualen Knoten (teilgebietsweise)
+maxRhoDual = zeros(length(cLM),2);
+dualTris = cell(length(cLM),1);
 row_ind_LM = 1;
-for i = 1:length(cLM)
-    for j = 2:size(cLM{i},2)
-        cBskal{cLM{i}(1,1)}(i,:)=cB{cLM{i}(1,1)}(i,:)*(maxRhoSD(cLM{j}(1,j))/sumRho(i)); % jeweils rho des anderen Teilgebiets verwenden
-        cBskal{cLM{i}(1,j)}(i,:)=cB{cLM{i}(1,j)}(i,:)*(maxRhoSD(cLM{i}(1,1))/sumRho(i));
-        row_ind_LM = row_ind_LM + 1;
+for i = 1:length(cLM) % Iteriere ueber duale Knoten
+    globNum = l2g__sd{cLM{i}(1,1)}(cLM{i}(2,1));    % Globale Knotennummer des dualen Knotens
+    dualTris{i} = vertTris{globNum};   % Enthaelt fuer den dualen Knoten die Dreiecke in denen er liegt
+    cnt = 1;
+    for j = cLM{i}(1,:)    % Iteriere ueber TG in denen dualer Knoten liegt
+        dualSDTris = intersect(dualTris{i},find(logicalTri__sd{j})); % Dreiecke des dualen Knotens UND im entsprechenden TG
+        maxRhoDual(i,cnt)=max(rhoTri(dualSDTris)); % Maximaler Koeffizient
+        cnt = cnt+1;
     end
+    sumMaxRhoDual = sum(maxRhoDual(i,:)); % Summer ueber maximale Koeffizienten zu diesem Knoten
+    % Verwende zur Skalierung jeweils den Koeffizienten des anderen TG
+    cBskal{cLM{i}(1,1)}(row_ind_LM,cLM{i}(2,1)) = (maxRhoDual(i,2)/sumMaxRhoDual)*cB{cLM{i}(1,1)}(row_ind_LM,cLM{i}(2,1));
+    cBskal{cLM{i}(1,2)}(row_ind_LM,cLM{i}(2,2)) = (maxRhoDual(i,1)/sumMaxRhoDual)*cB{cLM{i}(1,2)}(row_ind_LM,cLM{i}(2,2));
+    row_ind_LM = row_ind_LM + 1;
 end
+
 
 %% Assembliere die Steifigkeitsmatrix und den Lastvektor
-
 cK = cell(numSD,1); % Steifigkeitsmatrizen
 cb = cell(numSD,1); % Rechte Seiten
 
 for i = 1:numSD
-    [cK{i},~,cb{i}] = assemble(tri__sd{i}, vert__sd{i},1,f);
+    [cK{i},~,cb{i}] = assemble(tri__sd{i}, vert__sd{i},1,f,rhoTriSD{i});
 end
 
 %% Assembliere globales K in primalen Variablen
@@ -145,34 +151,8 @@ for i = 1:numSD
     S_PiPi = S_PiPi - cK_PiB{i} *(cK_BB{i}\cK_PiB{i}');
 end
 
-%% Erstelle function handle
+%% Erstelle function handle auf Systemmatrix F
 hF = @(lambda) F(cB_B,cK_BB,cK_PiB,S_PiPi,lambda);
-
-%% Definiere Matrix F
-
-% temp1 = (cK_PiB{1} * (cK_BB{1}\cB_B{1}'));
-% for i = 2:length(cB_B)
-%     temp1 = temp1 + (cK_PiB{i} * (cK_BB{i}\cB_B{i}'));
-% end
-% temp1 = S_PiPi \ temp1;  %S_PiPi^-1*K_PiB*K_BB^-1*B_B^T
-% temp2 = (cB_B{1} * (cK_BB{1}\cK_PiB{1}'));
-% for i = 2:length(cB_B)
-%     temp2 = temp2 + (cB_B{i} * (cK_BB{i}\cK_PiB{i}'));
-% end
-% F1 = temp2 * temp1;     %B_B*K_BB^-1*K_BPi * temp1
-% temp3 = (cB_B{1} * (cK_BB{1}\cB_B{1}'));
-% for i = 2:length(cB_B)
-%     temp3 = temp3 + (cB_B{i} * (cK_BB{i}\cB_B{i}'));
-% end
-% F2 = temp3;     %B_B*K_BB^-1*B_B^T
-% F = F1+F2;
-%
-% K_BB = blkdiag(cK_BB{:});
-% K_PiB = cell2mat(cK_PiB');
-% K_Tilde = [K_BB,K_PiB';
-%            K_PiB,K_PiPiTilde];
-% B=cell2mat(cB);
-% F = B*(K_Tilde\ B');
 
 %% Berechne d
 f_B = cell2mat(cb_B);
@@ -187,10 +167,9 @@ cEdgesSD = cell(1,1);
 for i = 1:length(cLM)
     cEdgesSD{1} = [cEdgesSD{1};cLM{i}(1,:)];
 end
-edgesSD = unique(cEdgesSD{1},'rows','stable'); % Enthaelt die beiden angrenzenden Teilgebietsnummern pro TG-Kante
+edgesSD = unique(cEdgesSD{1},'rows'); % Enthaelt die beiden angrenzenden Teilgebietsnummern pro TG-Kante
 numEdges = size(edgesSD,1);
 
-edgesDualAll = cell(size(edgesSD));
 edgesDualGlobalAll = cell(size(edgesSD));
 edgesDual = cell(numEdges,1);
 edgesDualGlobal = cell(numEdges,1);
@@ -212,7 +191,7 @@ for i = 1:numEdges % Iteriere ueber Kanten
         U(j,i) = maxRhoVert(edgesDualGlobal{i}(cnt));
         cnt = cnt+1;
     end
-end    
+end
 
 
 %% Definiere Projektion P
@@ -220,50 +199,52 @@ UFU = U'*hF(U);
 invUFU = UFU\eye(size(UFU));
 P = @(x) U*invUFU*U'*F(cB_B,cK_BB,cK_PiB,S_PiPi,x);
 P_transpose = @(x) F(cB_B,cK_BB,cK_PiB,S_PiPi,U*invUFU*U'*x);
+IminusP = @(x) x-P(x);
+IminusP_transpose = @(x) x-P_transpose(x);
 
 %% Definiere Vorkonditionierer
 % Vorkonditionierer
-idVK= @(x) eye(size(x,1),size(x,1))*x;
+idVK= @(x) x;
 dirichletVK = @(x) dirVKfunction(numSD,cBskal_Delta,cK_DeltaDelta,cK_II,cK_DeltaI,x);
-deflationVK = @(x) dirichletVK(idVK(x)-P_transpose(x))-P(dirichletVK(idVK(x)-P_transpose(x)));  % invM = dirichletVK
+deflationVK = @(x) IminusP(dirichletVK(IminusP_transpose(x)));
 balancingVK = @(x) deflationVK(x)+U*invUFU*U'*x;
-
-
-if strcmp('Deflation',VK)  % Deflation-VK M^-1_PP
-    invM  = @(x) deflationVK(x);
-elseif strcmp('Balancing',VK) % Balancing-VK M^-1_BP
-    invM  = @(x) balancingVK(x);
-elseif strcmp('Dirichlet',VK)  % Dirichlet-VK
-    invM  = @(x) dirichletVK(x);
-elseif strcmp('Identitaet',VK)    % Identitaet
-    invM  = @(x) idVK(x);
-end
 
 %% PCG
 tol = 10^(-8);
 x0 = zeros(n_LM,1);
-[lambda,~,iter,kappa_est] = preCG(hF,invM,d,x0,tol,P,VK);
+% Funktion zum Plotten der Loesungen waehrend der Iteration von PCG
+ploth = @(lambda,iter,VK) plotiter(lambda,iter,VK,cB_B,cK_BB,cK_PiB,cb_B,cPrimalMap, ...
+    l2g__sd,cPrimal,cIDual,S_PiPi,f_PiTilde,f_B,tri__sd,vert__sd);
 
-
-if strcmp('Deflation',VK)  % Deflation-VK M^-1_PP
-    lambdaBar = U*invUFU*U'*d;
-    lambda = lambdaBar+lambda;
-end
-
-fprintf("Vorkonditionierer: %s\n",VK{1})
-fprintf("Anzahl Iterationen: %i\n",iter)
-fprintf("Schaetzung Konditionszahl: %e\n",kappa_est)
-
-%% Extrahiere Loesung u_i & plot
-
-if plot
-    [cu,u_FETIDP_glob] = plotiter(lambda,iter,cB_B,cK_BB,cK_PiB,cb_B,cPrimalMap,...
-        l2g__sd,cPrimal,cIDual,S_PiPi,f_PiTilde,f_B,tri__sd,vert__sd);
-else
-    [cu,u_FETIDP_glob] = extract_u(lambda,cB_B,cK_BB,cK_PiB,cb_B,cPrimalMap,...
+lambda = cell(length(VK),1);
+iter = cell(length(VK),1);
+kappa_est = cell(length(VK),1);
+cu = cell(length(VK),1);
+u_FETIDP_glob = cell(length(VK),1);
+for i=1:length(VK)
+    if strcmp('Deflation',VK{i})  % Deflation-VK M^-1_PP
+        invM  = @(x) deflationVK(x);
+    elseif strcmp('Balancing',VK{i}) % Balancing-VK M^-1_BP
+        invM  = @(x) balancingVK(x);
+    elseif strcmp('Dirichlet',VK{i})  % Dirichlet-VK
+        invM  = @(x) dirichletVK(x);
+    elseif strcmp('Identitaet',VK{i})    % Identitaet
+        invM  = @(x) idVK(x);
+    end
+    
+    [lambda{i},~,iter{i},kappa_est{i}] = preCG(hF,invM,d,x0,tol,VK{i},ploth,U,invUFU,d);
+    
+    % Korrektur bei Deflation-VK notwendig
+    if strcmp('Deflation',VK{i})  % Deflation-VK M^-1_PP
+        lambdaBar = U*invUFU*U'*d;
+        lambda{i} = lambdaBar+lambda{i};
+    end
+    
+    %% Extrahiere Loesung u_i
+    [cu{i},u_FETIDP_glob{i}] = extract_u(lambda{i},cB_B,cK_BB,cK_PiB,cb_B,cPrimalMap,...
         l2g__sd,cPrimal,cIDual,S_PiPi,f_PiTilde,f_B);
+    
 end
-
 
 end
 
@@ -297,17 +278,18 @@ for i = 1:numSD
 end
 end
 
-function [cu,u_FETIDP_glob] = plotiter(vert,iter,cB_B,cK_BB,cK_PiB,cb_B,cPrimalMap,...
+function [cu,u_FETIDP_glob] = plotiter(lambda,iter,VK,cB_B,cK_BB,cK_PiB,cb_B,cPrimalMap,...
     l2g__sd,cPrimal,cIDual,S_PiPi,f_PiTilde,f_B,tri__sd,vert__sd)
-[cu,u_FETIDP_glob] = extract_u(vert,cB_B,cK_BB,cK_PiB,cb_B,...
+[cu,u_FETIDP_glob] = extract_u(lambda,cB_B,cK_BB,cK_PiB,cb_B,...
     cPrimalMap, l2g__sd,cPrimal,cIDual,S_PiPi,f_PiTilde,f_B);
-figure()
+subplot(2,2,iter+1)
 hold on
 for i = 1:length(tri__sd)
     trisurf(tri__sd{i},vert__sd{i}(:,1),vert__sd{i}(:,2),cu{i});
 end
 xlabel("x"); ylabel("y"); zlabel("z");
-title(sprintf("Plot der FETI-DP Loesung - Iteration: %i",iter));
+title(sprintf("Plot der Loesung: %s-VK",VK))
+subtitle(sprintf("Iteration %g",iter))
 view(3)
 hold off
 end
