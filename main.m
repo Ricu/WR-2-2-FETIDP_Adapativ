@@ -22,7 +22,7 @@ numVert=size(vert,1);   numTri=size(tri,1); % Anzahl Knoten und Dreiecke
 % und logische Liste, welche Dreiecke in welchem TG sind
 % Dirichletrand fehlt in Aufgabenstellung?!
 dirichlet = or(ismember(vert(:,1),vertLim), ismember(vert(:,2),yLim)); % Dirichletknoten, logischer Vektor
-[edges,elements_byEdgeIDs,adjacentElements__e] = mesh_edgeList(tri); % Erstelle Kantenliste, etc.
+% [edges,elements_byEdgeIDs,adjacentElements__e] = mesh_edgeList(tri); % Erstelle Kantenliste, etc.
 numEdges=size(edges,1); % Anzahl Kanten
 
 %% PDE
