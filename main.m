@@ -73,8 +73,12 @@ interface = ((mod(vert(:,1),1/N)==0) | (mod(vert(:,2),1/N)==0))  & (vert(:,1) ~=
 figure("Name","Triangulierung des Gebiets mit Koeffizientenfunktion");
 patch('vertices',vert,'faces',tri,'edgecol','k','facecol',[1,1,1]); hold on; axis equal tight;
 patch('vertices',vert,'faces',tri(indElementsCanal,:),'edgecol','k','facecol',[.8,.9,1]); hold on; axis equal tight;
-plot(vert(interface,1),vert(interface,2),'r.');
-legend('\rho = 1','\rho = 10^6')
+%plot(vert(interface,1),vert(interface,2),'r.');
+for i = 1:N-1
+    line([0,1],[i/N,i/N],'LineWidth', 1, 'color', 'g')
+    line([i/N,i/N],[0,1],'LineWidth', 1, 'color', 'g')
+end
+legend('\rho = 1','\rho = 10^6','Interface','','','')
 title("Triangulierung mit Koeffizientenfunktion")
 
 %% Loesen des Systems mit FETI-DP erstmal Identitaet

@@ -69,7 +69,6 @@ for i = 1:numVert % Iteriere ueber Knoten
     maxRhoVert(i) = max(pho(vertTris{i}));
 end
 
-
 %% Plotten des Gitters mit Kanal
 figure()
 patch('vertices',vert,'faces',tri,'edgecol','k','facecol',[1,1,1]); hold on; axis equal tight;
