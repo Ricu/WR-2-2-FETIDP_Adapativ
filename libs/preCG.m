@@ -1,6 +1,7 @@
 function [x,resid,iter,kappa_est,alpha,beta] = preCG(A,invM,b,x0,tol,VK,ploth,U,invUFU,d)
 
-rk = b - A(x0);
+r0 = b - A(x0);
+rk = r0;
 z0 = invM(rk);
 zk = z0;
 pk = zk;
@@ -10,13 +11,13 @@ alpha_vec = zeros(1000,1);
 beta_vec = zeros(1000,1);
 
 figure("Name","Loesungen waehrend der Iteration von PCG")
-while norm(zk)/norm(z0) > tol
+while norm(rk)/norm(r0) > tol %norm(zk)/norm(z0) > tol
     if nargin > 5 && iter < 4
         if strcmp('Deflation',VK)
             xBar = U*invUFU*U'*d;   % Korrektur bei Deflation-VK notwendig
-            ploth(xk+xBar,iter,VK)
+            ploth(xk+xBar,iter,VK);
         else
-            ploth(xk,iter,VK)
+            ploth(xk,iter,VK);
         end
     end
     ak = (rk'*zk) / (pk'*A(pk));
@@ -33,8 +34,7 @@ while norm(zk)/norm(z0) > tol
         beta_vec = [beta_vec ; zeros(1000,1)];
     end
     alpha_vec(iter) = ak;
-    beta_vec(iter) = bk;
-    
+    beta_vec(iter) = bk;    
 end
 
 x = xk;
