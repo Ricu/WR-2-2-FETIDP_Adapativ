@@ -5,6 +5,8 @@ addpath('libs')
 VK={'Deflation'};
 % VK={'Dirichlet'};
 
+TOL_vec = [1,5,10,50,100,500];
+
 %% Create grid
 n = 10; % 2*n^2 Elemente pro Teilgebiet
 N = 5;  % Partition in NxN quadratische Teilgebiete

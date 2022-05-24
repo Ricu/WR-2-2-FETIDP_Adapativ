@@ -231,6 +231,12 @@ for i=1:length(VK)
     elseif strcmp('Identitaet',VK{i})    % Identitaet
         invM  = @(x) idVK(x);
     end
+
+    %% Eigenwerte berechnen (50 groessten)
+    invMF = invM(hF(eye(size(U,1))));
+    Eigenwerte = eig(invMF);
+    Eigenwerte = sort(Eigenwerte,'descend');
+    EW50 = Eigenwerte(1:50);
     
     [lambda{i},~,iter{i},kappa_est{i}] = preCG(hF,invM,d,x0,tol,VK{i},ploth,U,invUFU,d);
     

@@ -5,6 +5,8 @@ addpath('libs')
 VK={'Deflation'};
 % VK={'Dirichlet'};
 
+TOL_vec = [1,5,10,50,100,500];
+
 %% Create grid
 n = 10; % 2*n^2 Elemente pro Teilgebiet
 N = 3;  % Partition in NxN quadratische Teilgebiete
@@ -24,21 +26,26 @@ numEdges=size(edges,1); % Anzahl Kanten
 %% PDE
 f = @(vert,y) ones(size(vert));   % Rechte Seite der DGL
 % Definiere Koeffizientenfunktion
-rhoMax = 10^6;
-rhoMin = 1;
-pho = rhoMin*ones(numTri,1);
-% Definiere Kanal
-xMin=14/30; xMax=16/30;
-yMin=3/30;  yMax=27/30;
-indVertCanal = (xMin <= vert(:,1) & vert(:,1) <= xMax & yMin <= vert(:,2) & vert(:,2) <= yMax);  % Logischer Vektor, welche Knoten im Kanal liegen
-numVertCanal = 1:numVert;
-numVertCanal = numVertCanal(indVertCanal); % Knotennummern der Knoten, die im Kanal liegen
-for i=1:numTri % Iteriere ueber die Elemente
-    if ismember(tri(i,:),numVertCanal) % Alle Knoten des Elements liegen im Kanal
-        pho(i)=rhoMax;    % Im Kanal entspricht die Koeffizientenfunktion 10^6
+% rhoMax zum Vergleich der rhoMin/rhoMax zur Konditionszahl
+%rhoMax_vec = [1,10,10^2,10^3,10^4,10^5,10^6,10^7,10^8];
+crhoMax_vec = 10^6;
+for r = 1:length(crhoMax_vec)
+    rhoMax = rhoMax_vec(r);
+    rhoMin = 1;
+    pho = rhoMin*ones(numTri,1);
+    % Definiere Kanal
+    xMin=14/30; xMax=16/30;
+    yMin=3/30;  yMax=27/30;
+    indVertCanal = (xMin <= vert(:,1) & vert(:,1) <= xMax & yMin <= vert(:,2) & vert(:,2) <= yMax);  % Logischer Vektor, welche Knoten im Kanal liegen
+    numVertCanal = 1:numVert;
+    numVertCanal = numVertCanal(indVertCanal); % Knotennummern der Knoten, die im Kanal liegen
+    for i=1:numTri % Iteriere ueber die Elemente
+        if ismember(tri(i,:),numVertCanal) % Alle Knoten des Elements liegen im Kanal
+            pho(i)=rhoMax;    % Im Kanal entspricht die Koeffizientenfunktion 10^6
+        end
     end
+    indElementsCanal = (pho == rhoMax); % Logischer Vektor, welche Elemente im Kanal liegen
 end
-indElementsCanal = (pho == rhoMax); % Logischer Vektor, welche Elemente im Kanal liegen
 
 %% Definiere maximalen Koeffizienten pro TG 
 maxRhoSD = zeros(numSD,1);

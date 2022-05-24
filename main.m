@@ -22,8 +22,8 @@ numVert=size(vert,1);   numTri=size(tri,1); % Anzahl Knoten und Dreiecke
 % und logische Liste, welche Dreiecke in welchem TG sind
 % Dirichletrand fehlt in Aufgabenstellung?!
 dirichlet = or(ismember(vert(:,1),vertLim), ismember(vert(:,2),yLim)); % Dirichletknoten, logischer Vektor
-[edges,elements_byEdgeIDs,adjacentElements__e] = mesh_edgeList(tri); % Erstelle Kantenliste, etc.
-numEdges=size(edges,1); % Anzahl Kanten
+%[edges,elements_byEdgeIDs,adjacentElements__e] = mesh_edgeList(tri); % Erstelle Kantenliste, etc.
+%numEdges=size(edges,1); % Anzahl Kanten
 
 %% PDE
 f = @(vert,y) ones(size(vert));   % Rechte Seite der DGL
@@ -67,10 +67,13 @@ for i = 1:numVert % Iteriere ueber Knoten
     maxRhoVert(i) = max(rhoTri(vertTris{i}));
 end
 
+interface = ((mod(vert(:,1),1/N)==0) | (mod(vert(:,2),1/N)==0))  & (vert(:,1) ~= 0) & (vert(:,2) ~= 0) & (vert(:,1) ~= 1) & (vert(:,2) ~= 1);
+
 %% Plotten des Gitters mit Kanal
 figure("Name","Triangulierung des Gebiets mit Koeffizientenfunktion");
 patch('vertices',vert,'faces',tri,'edgecol','k','facecol',[1,1,1]); hold on; axis equal tight;
-patch('vertices',vert,'faces',tri(indElementsCanal,:),'edgecol','k','facecol',[.8,.9,1]);
+patch('vertices',vert,'faces',tri(indElementsCanal,:),'edgecol','k','facecol',[.8,.9,1]); hold on; axis equal tight;
+plot(vert(interface,1),vert(interface,2),'r.');
 legend('\rho = 1','\rho = 10^6')
 title("Triangulierung mit Koeffizientenfunktion")
 
