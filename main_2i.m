@@ -20,8 +20,8 @@ numVert=size(vert,1);   numTri=size(tri,1); % Anzahl Knoten und Dreiecke
 [vert__sd,tri__sd,l2g__sd,logicalTri__sd] = meshPartSquare(N,vert,tri); % Erstelle Knoten- und Elementlisten pro Teilgebiet
 % Dirichletrand fehlt in Aufgabenstellung?!
 dirichlet = or(ismember(vert(:,1),vertLim), ismember(vert(:,2),yLim)); % Dirichletknoten, logischer Vektor
-[edges,elements_byEdgeIDs,adjacentElements__e] = mesh_edgeList(tri); % Erstelle Kantenliste, etc.
-numEdges=size(edges,1); % Anzahl Kanten
+% [edges,elements_byEdgeIDs,adjacentElements__e] = mesh_edgeList(tri); % Erstelle Kantenliste, etc.
+% numEdges=size(edges,1); % Anzahl Kanten
 
 %% PDE
 f = @(vert,y) ones(size(vert));   % Rechte Seite der DGL
@@ -32,7 +32,7 @@ crhoMax_vec = 10^6;
 for r = 1:length(crhoMax_vec)
     rhoMax = rhoMax_vec(r);
     rhoMin = 1;
-    pho = rhoMin*ones(numTri,1);
+rhoTri = rhoMin*ones(numTri,1);
     % Definiere Kanal
     xMin=14/30; xMax=16/30;
     yMin=3/30;  yMax=27/30;
@@ -41,16 +41,17 @@ for r = 1:length(crhoMax_vec)
     numVertCanal = numVertCanal(indVertCanal); % Knotennummern der Knoten, die im Kanal liegen
     for i=1:numTri % Iteriere ueber die Elemente
         if ismember(tri(i,:),numVertCanal) % Alle Knoten des Elements liegen im Kanal
-            pho(i)=rhoMax;    % Im Kanal entspricht die Koeffizientenfunktion 10^6
+        rhoTri(i)=rhoMax;    % Im Kanal entspricht die Koeffizientenfunktion 10^6
         end
     end
-    indElementsCanal = (pho == rhoMax); % Logischer Vektor, welche Elemente im Kanal liegen
-end
+indElementsCanal = (rhoTri == rhoMax); % Logischer Vektor, welche Elemente im Kanal liegen
 
 %% Definiere maximalen Koeffizienten pro TG 
+rhoTriSD = cell(numSD,1);
 maxRhoSD = zeros(numSD,1);
 for i = 1:numSD
-    maxRhoSD(i) = max(pho(logicalTri__sd{i}));
+    rhoTriSD{i} = rhoTri(logicalTri__sd{i});
+    maxRhoSD(i) = max(rhoTriSD{i});
 end
 
 %% Definiere maximalen Koeffizienten pro Knoten
@@ -66,8 +67,9 @@ for i = 1:numVert % Iteriere ueber Knoten
             cnt = cnt+1;
         end
     end
-    maxRhoVert(i) = max(pho(vertTris{i}));
+    maxRhoVert(i) = max(rhoTri(vertTris{i}));
 end
+
 
 %% Plotten des Gitters mit Kanal
 figure()
@@ -75,7 +77,7 @@ patch('vertices',vert,'faces',tri,'edgecol','k','facecol',[1,1,1]); hold on; axi
 patch('vertices',vert,'faces',tri(indElementsCanal,:),'edgecol','k','facecol',[.8,.9,1]);
 
 %% Loesen des Systems mit FETI-DP erstmal Identitaet
-[cu,u_FETIDP_glob] = fetidp(numSD,vert,numVert,vert__sd,tri__sd,edges,numEdges,l2g__sd,f,dirichlet,VK,maxRhoSD,maxRhoVert,true);
+[cu,u_FETIDP_glob] = fetidp_eig(numSD,vert,numVert,vert__sd,tri__sd,l2g__sd,f,dirichlet,VK,rhoTri,rhoTriSD,maxRhoVert,vertTris,logicalTri__sd,true);
                 
 %% compare residuals
 [K,~,b] = assemble(tri,vert,1,f);
