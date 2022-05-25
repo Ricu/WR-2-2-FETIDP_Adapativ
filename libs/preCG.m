@@ -9,6 +9,7 @@ xk = x0;
 iter = 0;
 alpha_vec = zeros(1000,1);
 beta_vec = zeros(1000,1);
+nanInfo = cell(1000,1);
 
 figure("Name","Loesungen waehrend der Iteration von PCG")
 while norm(rk)/norm(r0) > tol %norm(zk)/norm(z0) > tol
@@ -34,20 +35,27 @@ while norm(rk)/norm(r0) > tol %norm(zk)/norm(z0) > tol
         beta_vec = [beta_vec ; zeros(1000,1)];
     end
     alpha_vec(iter) = ak;
-    beta_vec(iter) = bk;    
+    beta_vec(iter) = bk;
+    
+    nanInfo{iter} = isnan(xk);
 end
 
 x = xk;
 resid = rk;
 alpha = alpha_vec(1:iter);
 beta = beta_vec(1:iter);
+nanInfo = nanInfo(1:iter);
 
 if nargout > 3
     temp1 = [sqrt(beta(1:end-1))./alpha(1:end-1); 0];
     temp2 = (1./alpha) + [0;beta(1:iter-1)]./[1;alpha(1:iter-1)];
     temp3 = [0; sqrt(beta(1:end-1))./alpha(1:end-1)];
     Tk = spdiags([temp1 temp2 temp3],-1:1,iter,iter);
-    kappa_est = cond(full(Tk));
+    if ~strcmp('Deflation',VK)
+        kappa_est = cond(full(Tk));
+    else
+        kappa_est = 0;
+    end
 end
 end
 
