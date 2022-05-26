@@ -204,55 +204,97 @@ P_transpose = @(x) F(cB_B,cK_BB,cK_PiB,S_PiPi,U*invUFU*U'*x);
 IminusP = @(x) x-P(x);
 IminusP_transpose = @(x) x-P_transpose(x);
 
-%% Definiere Vorkonditionierer
-% Vorkonditionierer
-idVK= @(x) x;
-dirichletVK = @(x) dirVKfunction(numSD,cBskal_Delta,cK_DeltaDelta,cK_II,cK_DeltaI,x);
-deflationVK = @(x) IminusP(dirichletVK(IminusP_transpose(x)));
-balancingVK = @(x) deflationVK(x)+U*invUFU*U'*x;
+
+%% PCG + Vorkonditionierer neu
+
+if strcmp('Identitaet',VK)
+    % Identitaet VK
+    invM  = @(x) x;
+else
+    % Dirichlet VK
+    invM = @(x) dirVKfunction(numSD,cBskal_Delta,cK_DeltaDelta,cK_II,cK_DeltaI,x);
+    if strcmp('Deflation',VK) || strcmp('Balancing',VK)
+        % Deflation VK
+        invM = @(x) IminusP(invM(IminusP_transpose(x)));
+        if strcmp('Balancing',VK)
+            % Balancing VK
+            invM = @(x) invM(x)+U*invUFU*U'*x;
+        end
+    end
+end
+
+invMF = invM(hF(eye(size(U,1))));
+eigenwerte = eig(invMF);
+eigenwerte = sort(eigenwerte,'descend');
+EW50 = eigenwerte(1:50);
 
 %% PCG
 tol = 10^(-8);
 x0 = zeros(n_LM,1);
-% Funktion zum Plotten der Loesungen waehrend der Iteration von PCG
 ploth = @(lambda,iter,VK) plotiter(lambda,iter,VK,cB_B,cK_BB,cK_PiB,cb_B,cPrimalMap, ...
     l2g__sd,cPrimal,cIDual,S_PiPi,f_PiTilde,f_B,tri__sd,vert__sd);
 
-lambda = cell(length(VK),1);
-iter = cell(length(VK),1);
-kappa_est = cell(length(VK),1);
-cu = cell(length(VK),1);
-u_FETIDP_glob = cell(length(VK),1);
-for i=1:length(VK)
-    if strcmp('Deflation',VK{i})  % Deflation-VK M^-1_PP
-        invM  = @(x) deflationVK(x);
-    elseif strcmp('Balancing',VK{i}) % Balancing-VK M^-1_BP
-        invM  = @(x) balancingVK(x);
-    elseif strcmp('Dirichlet',VK{i})  % Dirichlet-VK
-        invM  = @(x) dirichletVK(x);
-    elseif strcmp('Identitaet',VK{i})    % Identitaet
-        invM  = @(x) idVK(x);
-    end
+[lambda,~,iter,kappa_est] = preCG(hF,invM,d,x0,tol,VK,ploth,U,invUFU,d);
 
-    %% Eigenwerte berechnen (50 groessten)
-    invMF = invM(hF(eye(size(U,1))));
-    Eigenwerte = eig(invMF);
-    Eigenwerte = sort(Eigenwerte,'descend');
-    EW50 = Eigenwerte(1:50);
-    
-    [lambda{i},~,iter{i},kappa_est{i}] = preCG(hF,invM,d,x0,tol,VK{i},ploth,U,invUFU,d);
-    
-    % Korrektur bei Deflation-VK notwendig
-    if strcmp('Deflation',VK{i})  % Deflation-VK M^-1_PP
-        lambdaBar = U*invUFU*U'*d;
-        lambda{i} = lambdaBar+lambda{i};
-    end
-    
-    %% Extrahiere Loesung u_i
-    [cu{i},u_FETIDP_glob{i}] = extract_u(lambda{i},cB_B,cK_BB,cK_PiB,cb_B,cPrimalMap,...
-        l2g__sd,cPrimal,cIDual,S_PiPi,f_PiTilde,f_B);
-    
+% Korrektur bei Deflation-VK notwendig
+if strcmp('Deflation',VK)  % Deflation-VK M^-1_PP
+    lambdaBar = U*invUFU*U'*d;
+    lambda = lambdaBar+lambda;
 end
+
+%% Extrahiere Loesung u_i
+[cu,u_FETIDP_glob] = extract_u(lambda,cB_B,cK_BB,cK_PiB,cb_B,cPrimalMap,...
+    l2g__sd,cPrimal,cIDual,S_PiPi,f_PiTilde,f_B);
+
+
+%% PCG + Vorkonditionierer alt
+% %% Definiere Vorkonditionierer
+% dirichletVK = @(x) dirVKfunction(numSD,cBskal_Delta,cK_DeltaDelta,cK_II,cK_DeltaI,x);
+% deflationVK = @(x) IminusP(dirichletVK(IminusP_transpose(x)));
+% balancingVK = @(x) deflationVK(x)+U*invUFU*U'*x;
+%
+% %% PCG
+% tol = 10^(-8);
+% x0 = zeros(n_LM,1);
+% % Funktion zum Plotten der Loesungen waehrend der Iteration von PCG
+% ploth = @(lambda,iter,VK) plotiter(lambda,iter,VK,cB_B,cK_BB,cK_PiB,cb_B,cPrimalMap, ...
+%     l2g__sd,cPrimal,cIDual,S_PiPi,f_PiTilde,f_B,tri__sd,vert__sd);
+%
+% lambda = cell(length(VK),1);
+% iter = cell(length(VK),1);
+% kappa_est = cell(length(VK),1);
+% cu = cell(length(VK),1);
+% u_FETIDP_glob = cell(length(VK),1);
+% for i=1:length(VK)
+%     if strcmp('Deflation',VK{i})  % Deflation-VK M^-1_PP
+%         invM  = @(x) deflationVK(x);
+%     elseif strcmp('Balancing',VK{i}) % Balancing-VK M^-1_BP
+%         invM  = @(x) balancingVK(x);
+%     elseif strcmp('Dirichlet',VK{i})  % Dirichlet-VK
+%         invM  = @(x) dirichletVK(x);
+%     elseif strcmp('Identitaet',VK{i})    % Identitaet
+%
+%     end
+%
+%     %% Eigenwerte berechnen (50 groessten)
+%     invMF = invM(hF(eye(size(U,1))));
+%     eigenwerte = eig(invMF);
+%     eigenwerte = sort(eigenwerte,'descend');
+%     EW50 = eigenwerte(1:50);
+%
+%     [lambda{i},~,iter{i},kappa_est{i}] = preCG(hF,invM,d,x0,tol,VK{i},ploth,U,invUFU,d);
+%
+%     % Korrektur bei Deflation-VK notwendig
+%     if strcmp('Deflation',VK{i})  % Deflation-VK M^-1_PP
+%         lambdaBar = U*invUFU*U'*d;
+%         lambda{i} = lambdaBar+lambda{i};
+%     end
+%
+%     %% Extrahiere Loesung u_i
+%     [cu{i},u_FETIDP_glob{i}] = extract_u(lambda{i},cB_B,cK_BB,cK_PiB,cb_B,cPrimalMap,...
+%         l2g__sd,cPrimal,cIDual,S_PiPi,f_PiTilde,f_B);
+%
+% end
 
 end
 
