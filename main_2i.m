@@ -8,11 +8,12 @@ VK_vec = {...
           'Deflation',...
           'Balancing'...
           };
+% VK_vec = {'Deflation'};
 
 TOL_vec = [1,5,10,50,100,500];
 
 %% Erstelle das Gitter
-n = 5; % 2*n^2 Elemente pro Teilgebiet
+n = 10; % 2*n^2 Elemente pro Teilgebiet
 N = 3;  % Partition in NxN quadratische Teilgebiete
 numSD = N^2; % Anzahl Teilgebiete
 xyLim = [0,1]; % Gebiet: Einheitsquadrat
