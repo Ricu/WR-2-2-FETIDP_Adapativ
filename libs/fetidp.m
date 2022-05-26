@@ -1,4 +1,6 @@
-function [cu,u_FETIDP_glob,lambda,iter,kappa_est] = fetidp(numSD,vert,numVert,vert__sd,tri__sd,l2g__sd,f,dirichlet,VK,rhoTri,rhoTriSD,maxRhoVert,vertTris,logicalTri__sd,plot)
+function [cu,u_FETIDP_glob,lambda,iter,kappa_est] = fetidp(vert__sd,tri__sd,l2g__sd,f,dirichlet,VK,rhoTri,rhoTriSD,maxRhoVert,vertTris,logicalTri__sd,plot)
+numSD = length(vert__sd);
+numVert = length(dirichlet);
 
 %% Create logical vectors
 cDirichlet = cell(numSD,1); % Dirichlet Knoten
@@ -8,7 +10,7 @@ cDual = cell(numSD,1);      % Duale Knoten Lokal
 cPrimal = cell(numSD,1);    % Primale Knoten Lokal
 cIDual = cell(numSD,1);     % Innere und Duale Knoten Lokal
 
-multiplicity = zeros(size(vert,1),1);
+multiplicity = zeros(numVert,1);
 for i = 1:numSD
     multiplicity(l2g__sd{i}) = multiplicity(l2g__sd{i}) + 1; % zaehle Vorkommnisse
 end
