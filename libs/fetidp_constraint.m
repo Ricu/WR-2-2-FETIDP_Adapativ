@@ -1,4 +1,4 @@
-function [cu,u_FETIDP_glob,lambda,iter,kappa_est] = fetidp_constraint(vert__sd,tri__sd,l2g__sd,f,dirichlet,VK,constraint_type,rhoTri,rhoTriSD,maxRhoVert,vertTris,logicalTri__sd,plot)
+function [cu,u_FETIDP_glob,lambda,iter,kappa_est,topEW] = fetidp_constraint(vert__sd,tri__sd,l2g__sd,f,dirichlet,VK,constraint_type,rhoTri,rhoTriSD,maxRhoVert,vertTris,logicalTri__sd,plot)
 % constraint types (constraint_type): 
 % 'none' (Vanilla FETIDP)
 % 'non-adaptive' (Aufgabe Teil 1), 
@@ -389,10 +389,10 @@ else
     end
 end
 
-% invMF = invM(hF(eye(size(U,1))));
-% eigenwerte = eig(invMF);
-% eigenwerte = sort(eigenwerte,'descend');
-% EW50 = eigenwerte(1:50);
+invMF = invM(hF(eye(n_LM)));
+ew = eig(invMF);
+ew = sort(ew,'descend');
+topEW = ew(1:min(length(ew),50));
 
 %% PCG
 tol = 10^(-7);
