@@ -52,9 +52,9 @@ mapDual = zeros(numVert,1);
 mapDual(dual)=1:nnz(dual);
 
 for i = 1:numSD
-    cGammaMap{i} = mapGamma((l2g__sd{i}(cGamma{i}))); % Interfaceknoten: lokal zu global
-    cPrimalMap{i} = mapPrimal((l2g__sd{i}(cPrimal{i})));
-    cDualMap{i} = mapDual((l2g__sd{i}(cDual{i})));
+    cGammaMap{i} = mapGamma((l2g__sd{i}(cGamma{i})));       % Interfaceknoten: lokal zu global
+    cPrimalMap{i} = mapPrimal((l2g__sd{i}(cPrimal{i})));    % Interfaceknoten: lokal zu global
+    cDualMap{i} = mapDual((l2g__sd{i}(cDual{i})));          % Interfaceknoten: lokal zu global
 end
 
 %% Lagrange Multiplikatoren info
@@ -177,13 +177,47 @@ numEdges = size(edgesSD,1);
 edgesDualGlobalAll = cell(size(edgesSD));
 edgesDual = cell(numEdges,1);
 edgesDualGlobal = cell(numEdges,1);
+
+edgesGammaGlobalAll = cell(size(edgesSD));
+edgesGammaGlobal = cell(numEdges,1);
+edgesGamma = cell(numEdges,1);
+
+edgesPrimalGlobalAll = cell(size(edgesSD));
+edgesPrimalGlobal = cell(numEdges,1);
+edgesPrimal = cell(numEdges,1);
+
 for i = 1:numEdges % Iteriere ueber TG-Kanten
     for j = 1:size(edgesSD,2) % Iteriere ueber angrenzende TG
         SD = edgesSD(i,j);
         edgesDualGlobalAll{i,j} = l2g__sd{SD}(cDual{SD});   % Enthaelt fuer jedes angrenzende TG die dualen Knoten (GLOBALE Knotennummern)
+        edgesGammaGlobalAll{i,j} = l2g__sd{SD}(cGamma{SD});
+        edgesPrimalGlobalAll{i,j} =  l2g__sd{SD}(cPrimal{SD});
     end
+    edgesGammaGlobal{i} = intersect(edgesGammaGlobalAll{i,1},edgesGammaGlobalAll{i,2});
+    edgesGamma{i} = mapGamma(edgesGammaGlobal{i});
     edgesDualGlobal{i} = intersect(edgesDualGlobalAll{i,1},edgesDualGlobalAll{i,2}); % Enthaelt fuer die TG-Kanten die dualen Knoten (GLOBALE Knotennummern)
     edgesDual{i} = mapDual(edgesDualGlobal{i}); % Enthaelt fuer die TG-Kanten die dualen Knoten (DUALE Knotennummern)
+    edgesPrimalGlobal{i} = intersect(edgesPrimalGlobalAll{i,1},edgesPrimalGlobalAll{i,2});
+    edgesPrimal{i} = mapPi(edgesPrimalGlobal{i});
+end
+% Umkehrabbildung
+g2l__sd = cell(numSD,1);
+for sd = 1:numSD
+    g2l__sd{sd} = zeros(numVert,1);
+    ind = l2g__sd{sd};
+    g2l__sd{sd}(ind) = 1:length(l2g__sd{sd});
+end
+
+cLocalPrimal = cell(size(edgesSD));
+cLocalDual = cell(size(edgesSD));
+cLocalGamma = cell(size(edgesSD));
+for i = 1:numEdges
+    for j = 1:2
+        sd = edgesSD(i,j);
+        cLocalPrimal{i,j} = g2l__sd{sd}(edgesPrimalGlobal{i});
+        cLocalDual{i,j} = g2l__sd{sd}(edgesDualGlobal{i});
+        cLocalGamma{i,j} = g2l__sd{sd}(edgesGammaGlobal{i});
+    end
 end
 
 
@@ -225,10 +259,10 @@ else
     end
 end
 
-invMF = invM(hF(eye(size(U,1))));
-eigenwerte = eig(invMF);
-eigenwerte = sort(eigenwerte,'descend');
-EW50 = eigenwerte(1:50);
+% invMF = invM(hF(eye(size(U,1))));
+% eigenwerte = eig(invMF);
+% eigenwerte = sort(eigenwerte,'descend');
+% EW50 = eigenwerte(1:50);
 
 %% PCG
 tol = 10^(-8);
