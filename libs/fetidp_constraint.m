@@ -44,8 +44,8 @@ mapGamma = zeros(numVert,1);
 mapGamma(gamma)=1:nnz(gamma);
 
 cPrimalMap = cell(numSD,1);
-mapPi = zeros(numVert,1);
-mapPi(primal)=1:nnz(primal);
+mapPrimal = zeros(numVert,1);
+mapPrimal(primal)=1:nnz(primal);
 
 cDualMap = cell(numSD,1);
 mapDual = zeros(numVert,1);
@@ -53,7 +53,7 @@ mapDual(dual)=1:nnz(dual);
 
 for i = 1:numSD
     cGammaMap{i} = mapGamma((l2g__sd{i}(cGamma{i}))); % Interfaceknoten: lokal zu global
-    cPrimalMap{i} = mapPi((l2g__sd{i}(cPrimal{i})));
+    cPrimalMap{i} = mapPrimal((l2g__sd{i}(cPrimal{i})));
     cDualMap{i} = mapDual((l2g__sd{i}(cDual{i})));
 end
 
@@ -121,7 +121,7 @@ K_PiPiTilde = sparse(sum(primal),sum(primal));
 f_PiTilde = sparse(sum(primal),1);
 
 for i = 1:numSD
-    piInd = mapPi(l2g__sd{i}(cPrimal{i}));
+    piInd = mapPrimal(l2g__sd{i}(cPrimal{i}));
     K_PiPiTilde(piInd,piInd) = K_PiPiTilde(piInd,piInd) + cK{i}(cPrimal{i},cPrimal{i});
     f_PiTilde(piInd) = f_PiTilde(piInd) + cb{i}(cPrimal{i});
 end
@@ -145,7 +145,7 @@ for i = 1:numSD
     cK_DeltaI{i}=cK{i}(cDual{i},cInner{i});
     cb_B{i} = cb{i}(cIDual{i});
     cK_PiB{i} = sparse(nnz(primal),nnz(cIDual{i}));
-    piInd = mapPi(l2g__sd{i}(cPrimal{i}));
+    piInd = mapPrimal(l2g__sd{i}(cPrimal{i}));
     cK_PiB{i}(piInd,:) = cK{i}(cPrimal{i},cIDual{i});
 end
 
