@@ -12,7 +12,7 @@ beta_vec = zeros(1000,1);
 nanInfo = cell(1000,1);
 
 figure("Name","Loesungen waehrend der Iteration von PCG")
-while norm(rk)/norm(r0) > tol %norm(zk)/norm(z0) > tol
+while norm(zk)/norm(z0) > tol %norm(rk)/norm(r0) > tol %
     if nargin > 5 && iter < 4
         if strcmp('Deflation',VK)
             xBar = U*invUFU*U'*d;   % Korrektur bei Deflation-VK notwendig
@@ -38,6 +38,7 @@ while norm(rk)/norm(r0) > tol %norm(zk)/norm(z0) > tol
     beta_vec(iter) = bk;
     
     nanInfo{iter} = isnan(xk);
+%     fprintf('Iter %i, Residuum %10f, Anzahl NaN %i\n',iter,norm(rk)/norm(r0),nnz(isnan(xk)))
 end
 
 x = xk;
