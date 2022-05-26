@@ -2,28 +2,22 @@ clear; clc;
 addpath('libs')
 
 %% Definiere Vorkonditionierer
-VK = {'Deflation','Balancing','Dirichlet','Identitaet'};
-% VK={'Deflation'};
-% VK={'Balancing'};
-% VK = {'Identitaet'};
-% VK={'Dirichlet'};
+VK = {'Identitaet','Dirichlet','Deflation','Balancing'};
 
 %% Erstelle das Gitter
 n = 10; % 2*n^2 Elemente pro Teilgebiet
 N = 3;  % Partition in NxN quadratische Teilgebiete
 numSD = N^2; % Anzahl Teilgebiete
-% Gebiet: Einheitsquadrat
-vertLim = [0,1];
-yLim = [0,1];
+xyLim = [0,1]; % Gebiet: Einheitsquadrat
 
 [vert,tri] = genMeshSquare(N,n); % Erstelle Knoten- und Elementliste
 numVert=size(vert,1);   numTri=size(tri,1); % Anzahl Knoten und Dreiecke
-[vert__sd,tri__sd,l2g__sd,logicalTri__sd] = meshPartSquare(N,vert,tri); % Erstelle Knoten- und Elementlisten pro Teilgebiet
-% und logische Liste, welche Dreiecke in welchem TG sind
-% Dirichletrand fehlt in Aufgabenstellung?!
-dirichlet = or(ismember(vert(:,1),vertLim), ismember(vert(:,2),yLim)); % Dirichletknoten, logischer Vektor
-% [edges,elements_byEdgeIDs,adjacentElements__e] = mesh_edgeList(tri); % Erstelle Kantenliste, etc.
-% numEdges=size(edges,1); % Anzahl Kanten
+% Erstelle Knoten- und Elementlisten pro Teilgebiet und logische Liste,
+% welche Dreiecke in welchem TG sind
+[vert__sd,tri__sd,l2g__sd,logicalTri__sd] = meshPartSquare(N,vert,tri); 
+
+% Markiere Dirichletknoten in logischem Vektor
+dirichlet = or(ismember(vert(:,1),xyLim), ismember(vert(:,2),xyLim)); 
 
 %% PDE
 f = @(vert,y) ones(size(vert));   % Rechte Seite der DGL
@@ -67,13 +61,10 @@ for i = 1:numVert % Iteriere ueber Knoten
     maxRhoVert(i) = max(rhoTri(vertTris{i}));
 end
 
-interface = ((mod(vert(:,1),1/N)==0) | (mod(vert(:,2),1/N)==0))  & (vert(:,1) ~= 0) & (vert(:,2) ~= 0) & (vert(:,1) ~= 1) & (vert(:,2) ~= 1);
-
 %% Plotten des Gitters mit Kanal
 figure("Name","Triangulierung des Gebiets mit Koeffizientenfunktion");
 patch('vertices',vert,'faces',tri,'edgecol','k','facecol',[1,1,1]); hold on; axis equal tight;
 patch('vertices',vert,'faces',tri(indElementsCanal,:),'edgecol','k','facecol',[.8,.9,1]);
-%plot(vert(interface,1),vert(interface,2),'r.');
 for i = 1:N-1
     line([0,1],[i/N,i/N],'LineWidth', 1, 'color', 'r')
     line([i/N,i/N],[0,1],'LineWidth', 1, 'color', 'r')
@@ -82,7 +73,7 @@ legend('\rho = 1','\rho = 10^6','Interface','','','')
 title("Triangulierung mit Koeffizientenfunktion")
 
 %% Loesen des Systems mit FETI-DP erstmal Identitaet
-[cu,u_FETIDP_glob,lambda,iter,kappa_est] = fetidp(numSD,vert,numVert,vert__sd,tri__sd,l2g__sd,f,dirichlet,VK,rhoTri,rhoTriSD,maxRhoVert,vertTris,logicalTri__sd,true);
+[cu,u_FETIDP_glob,~,iter,kappa_est] = fetidp(vert__sd,tri__sd,l2g__sd,f,dirichlet,VK,rhoTri,rhoTriSD,maxRhoVert,vertTris,logicalTri__sd,true);
 
 %% Vergleich der Loesung mit Referenzloesung
 % Als Referenzloesung dient die Loesung des global assemblierten Sysmtems
