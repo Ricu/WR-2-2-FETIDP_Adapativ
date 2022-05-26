@@ -230,9 +230,7 @@ end
 
 %% NEU Eigenwertproblem (Spaeter Definition von U)
 cU=cell(1,numEdges);
-% Brauchen pi_bar_ij, pi_ij, P_D_ij, S_ij, I
 for edgeID = 1:numEdges
-%     edgeID = 4;
     ind = edgesDual{edgeID};
     eInd_gamma = edgesGammaGlobal{edgeID};
     eInd_dual = edgesDualGlobal{edgeID};
