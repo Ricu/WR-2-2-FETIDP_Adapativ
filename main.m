@@ -2,7 +2,11 @@ clear; clc;
 addpath('libs')
 
 %% Definiere Vorkonditionierer
-VK = {'Identitaet','Dirichlet','Deflation','Balancing'};
+VK_vec = {'Identitaet',...
+          'Dirichlet',...
+          'Deflation',...
+          'Balancing'...
+          };
 
 %% Erstelle das Gitter
 n = 10; % 2*n^2 Elemente pro Teilgebiet
@@ -72,46 +76,43 @@ end
 legend('\rho = 1','\rho = 10^6','Interface','','','')
 title("Triangulierung mit Koeffizientenfunktion")
 
-%% Loesen des Systems mit FETI-DP erstmal Identitaet
-[cu,u_FETIDP_glob,~,iter,kappa_est] = fetidp(vert__sd,tri__sd,l2g__sd,f,dirichlet,VK,rhoTri,rhoTriSD,maxRhoVert,vertTris,logicalTri__sd,true);
-
-%% Vergleich der Loesung mit Referenzloesung
+%% Aufstellen der Referenzloesung
 % Als Referenzloesung dient die Loesung des global assemblierten Sysmtems
 % mit Backslash-Operator
 [K,~,b] = assemble(tri,vert,1,f,rhoTri);
 K_II = K(~dirichlet,~dirichlet);
 b_I = b(~dirichlet);
 
-u_global = zeros(size(vert,1),1);
-u_global(~dirichlet) = K_II\b_I;
+u_ref = zeros(size(vert,1),1);
+u_ref(~dirichlet) = K_II\b_I;
 
-diff = cell(length(VK),1);
-for i=1:length(VK)
-    diff{i} = norm(u_FETIDP_glob{i}-u_global);
-end
+%% Loesen des Systems mit FETI-DP fuer versch. VK
+diffs = cell(length(VK_vec),1);
+iters = cell(length(VK_vec),1);
+kappa_ests = cell(length(VK_vec),1);
 
-%% Ergebnistabelle
-T_results = cell2table([iter';kappa_est';diff'],"RowNames",["Anzahl Iterationen","Konditionszahl","Abweichung von Referenzloesung"],"VariableNames",VK)
+fig_VK_comp = figure("Name","Loesungen fuer verschiedene Vorkonditionierer");
+tiledlayout('flow')
+for vk_ind = 1:length(VK_vec)
+    VK = VK_vec{vk_ind};
+    [cu,u_FETIDP_glob,~,iters{vk_ind},kappa_ests{vk_ind}] = fetidp(vert__sd,tri__sd,l2g__sd,f,...
+                                                 dirichlet,VK,rhoTri,rhoTriSD,...
+                                                 maxRhoVert,vertTris,...
+                                                 logicalTri__sd,true);
+    diffs{vk_ind} = norm(u_FETIDP_glob-u_ref);
 
-%% Plot der Loesungen
-
-figure("Name","Loesungen fuer verschiedene Vorkonditionierer")
-for j=1:length(VK)
-    subplot(2,2,j)
+    figure(fig_VK_comp)
+    nexttile
     hold on
-    for i = 1:length(tri__sd)
-        trisurf(tri__sd{i},vert__sd{i}(:,1),vert__sd{i}(:,2),cu{j}{i});
+    for sd = 1:length(tri__sd)
+        trisurf(tri__sd{sd},vert__sd{sd}(:,1),vert__sd{sd}(:,2),cu{sd});
     end
     xlabel("x"); ylabel("y"); zlabel("z");
-    title(sprintf("Finale Loesung: %s-VK",VK{j}));
+    title(sprintf("Finale Loesung: %s-VK",VK));
     view(3)
     hold off
 end
 
-% %% Global system PCG
-% tol = 10^(-8);
-% hK = @(vert) K_II * vert;
-% [lambda,resid,iter,kappa_est] = preCG(hK,speye(size(K_II)),b_I,zeros(length(K_II),1),tol);
-% fprintf("#### Global assembliertes System ####\n")
-% fprintf("Anzahl Iterationen: %i\n",iter)
-% fprintf("Schaetzung Konditionszahl: %e\n",kappa_est)
+%% Ergebnistabelle
+rowNames = ["Anzahl Iterationen","Konditionszahl","Abweichung von Referenzloesung"];
+T_results = cell2table([iters';kappa_ests';diffs'],"RowNames",rowNames,"VariableNames",VK_vec)
