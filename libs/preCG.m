@@ -57,6 +57,7 @@ if nargout > 3
     else
         kappa_est = 0;
     end
+    kappa_est = cond(full(Tk));
 end
 end
 
