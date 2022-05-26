@@ -518,7 +518,7 @@ function [eigenvalues, eigenvectors] = adaptiveEigenvalues(c, pi, P_D, S,sigma)
 A =  pi * P_D' * S * P_D * pi;
 Btilde = pi * S * pi + sigma*(eye(size(pi))-pi);
 if norm(S*c) < 10^(-8)
-    pibar = eye(nGammaUnass) - c*c';
+    pibar = eye(length(c)) - c*c';
     B = pibar * Btilde * pibar + sigma*(eye(size(pibar))-pibar); 
 else
     B = Btilde;
