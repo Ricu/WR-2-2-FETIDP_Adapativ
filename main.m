@@ -7,6 +7,13 @@ VK_vec = {'Identitaet',...
           'Deflation',...
           'Balancing'...
           };
+      
+ %% Parameter fuer PCG
+x0 = @(dim) zeros(dim,1); % Startwert
+tol = 10^(-8); % Toleranz
+% Residuum fuer die Abbruchbedingung bei PCG
+%resid = {'vorkonditioniert'}; 
+resid = {'nicht-vorkonditioniert'};
 
 %% Erstelle das Gitter
 n = 10; % 2*n^2 Elemente pro Teilgebiet
@@ -26,14 +33,14 @@ dirichlet = or(ismember(vert(:,1),xyLim), ismember(vert(:,2),xyLim));
 %% PDE
 f = @(vert,y) ones(size(vert));   % Rechte Seite der DGL
 
-%% Definiere Koeffizientenfunktion (pro Element)
-rhoTri = ones(numTri,1);
-% Definiere Kanal
+%% Definiere Koeffizientenfunktion pro Element
+% Definiere Knotennummern des Kanals
 xMin=14/30; xMax=16/30;
 yMin=3/30;  yMax=27/30;
 indVertCanal = (xMin <= vert(:,1) & vert(:,1) <= xMax & yMin <= vert(:,2) & vert(:,2) <= yMax);  % Logischer Vektor, welche Knoten im Kanal liegen
-numVertCanal = 1:numVert;
-numVertCanal = numVertCanal(indVertCanal); % Knotennummern der Knoten, die im Kanal liegen
+numVertCanal = find(indVertCanal); % Knotennummern der Knoten, die im Kanal liegen
+
+rhoTri = ones(numTri,1); % Außerhalb des Kanals entspricht die Koeffizientenfunktion 1
 for i=1:numTri % Iteriere ueber die Elemente
     if ismember(tri(i,:),numVertCanal) % Alle Knoten des Elements liegen im Kanal
         rhoTri(i)=10^6;    % Im Kanal entspricht die Koeffizientenfunktion 10^6
@@ -41,17 +48,16 @@ for i=1:numTri % Iteriere ueber die Elemente
 end
 indElementsCanal = rhoTri > 1; % Logischer Vektor, welche Elemente im Kanal liegen
 
-%% Definiere maximalen Koeffizienten pro TG 
+% Definiere Koeffizientenfunktion fuer Elemente eines TG
 rhoTriSD = cell(numSD,1);
-maxRhoSD = zeros(numSD,1);
 for i = 1:numSD
     rhoTriSD{i} = rhoTri(logicalTri__sd{i});
-    maxRhoSD(i) = max(rhoTriSD{i});
 end
 
-%% Definiere maximalen Koeffizienten pro Knoten
+%% Definiere maximalen Koeffizienten pro Knoten (und teilgebietsweise)
 maxRhoVert = zeros(numVert,1);
 vertTris = cell(numVert,1); 
+maxRhoVertSD = cell(numVert,1);
 for i = 1:numVert % Iteriere ueber Knoten
     iVec = i*ones(1,size(tri,2));
     cnt = 1;
@@ -62,7 +68,13 @@ for i = 1:numVert % Iteriere ueber Knoten
             cnt = cnt+1;
         end
     end
-    maxRhoVert(i) = max(rhoTri(vertTris{i}));
+    maxRhoVert(i) = max(rhoTri(vertTris{i})); % maximaler Koeffizient pro Knoten
+    
+    % Definiere maximalen Koeffizienten pro Knoten teilgebietsweise
+    for k = 1:numSD
+        vertTrisSD = logicalTri__sd{k}(vertTris{i}); % logischer Vektor welche Dreiecke des Knotens im TG liegen
+        maxRhoVertSD{i} = [maxRhoVertSD{i},max(rhoTri(vertTris{i}(vertTrisSD)))]; % maximalen Koeffizienten pro Knoten teilgebietsweise
+    end
 end
 
 %% Plotten des Gitters mit Kanal
@@ -95,10 +107,9 @@ fig_VK_comp = figure("Name","Loesungen fuer verschiedene Vorkonditionierer");
 tiledlayout('flow')
 for vk_ind = 1:length(VK_vec)
     VK = VK_vec{vk_ind};
-    [cu,u_FETIDP_glob,~,iters{vk_ind},kappa_ests{vk_ind}] = fetidp(vert__sd,tri__sd,l2g__sd,f,...
-                                                 dirichlet,VK,rhoTri,rhoTriSD,...
-                                                 maxRhoVert,vertTris,...
-                                                 logicalTri__sd,true);
+    [cu,u_FETIDP_glob,~,iters{vk_ind},kappa_ests{vk_ind}] = fetidp(vert__sd,tri__sd,l2g__sd,...
+                                    f,dirichlet,VK,rhoTriSD,maxRhoVert,maxRhoVertSD,tol,x0,resid);
+                                                 
     diffs{vk_ind} = norm(u_FETIDP_glob-u_ref);
 
     figure(fig_VK_comp)
