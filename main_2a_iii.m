@@ -2,43 +2,54 @@ clear; clc;
 addpath('libs')
 
 %% Definiere Vorkonditionierer
-VK={'Deflation'};
-% VK={'Dirichlet'};
+VK_vec = {...
+          'Identitaet',...
+          'Dirichlet',...
+          'Deflation',...
+          'Balancing'...
+          };
+% VK_vec = {'Deflation'};
 
 TOL_vec = [1,5,10,50,100,500];
 
-%% Create grid
+%% Erstelle das Gitter
 n = 10; % 2*n^2 Elemente pro Teilgebiet
 N = 5;  % Partition in NxN quadratische Teilgebiete
 numSD = N^2; % Anzahl Teilgebiete
-% Gebiet: Einheitsquadrat
-vertLim = [0,1];
-yLim = [0,1];
+xyLim = [0,1]; % Gebiet: Einheitsquadrat
 
 [vert,tri] = genMeshSquare(N,n); % Erstelle Knoten- und Elementliste
 numVert=size(vert,1);   numTri=size(tri,1); % Anzahl Knoten und Dreiecke
-[vert__sd,tri__sd,l2g__sd,logicalTri__sd] = meshPartSquare(N,vert,tri); % Erstelle Knoten- und Elementlisten pro Teilgebiet
-% Dirichletrand fehlt in Aufgabenstellung?!
-dirichlet = or(ismember(vert(:,1),vertLim), ismember(vert(:,2),yLim)); % Dirichletknoten, logischer Vektor
-[edges,elements_byEdgeIDs,adjacentElements__e] = mesh_edgeList(tri); % Erstelle Kantenliste, etc.
-numEdges=size(edges,1); % Anzahl Kanten
+% Erstelle Knoten- und Elementlisten pro Teilgebiet und logische Liste,
+% welche Dreiecke in welchem TG sind
+[vert__sd,tri__sd,l2g__sd,logicalTri__sd] = meshPartSquare(N,vert,tri); 
+
+% Markiere Dirichletknoten in logischem Vektor
+dirichlet = or(ismember(vert(:,1),xyLim), ismember(vert(:,2),xyLim)); 
 
 %% PDE
 f = @(vert,y) ones(size(vert));   % Rechte Seite der DGL
 % Definiere Koeffizientenfunktion
-rhoMax = 10^6;
+% rhoMax zum Vergleich der rhoMin/rhoMax zur Konditionszahl
+%rhoMax_vec = [1,10,10^2,10^3,10^4,10^5,10^6,10^7,10^8];
+rhoMax_vec = 10^6;
 rhoMin = 1;
 % Setze alle Koeffizienten der Elemente auf 'rhoMin'
-pho = rhoMin*ones(numTri,1);
-% Setze nun alle 'rhoMax' Koeffizienten.
-rho(rand(length(rho),1) < 0.25) = rhoMax;
+rhoTri = rhoMin*ones(numTri,1);
+for r = 1:length(rhoMax_vec)
+    rhoMax = rhoMax_vec(r);
+    % Setze nun alle 'rhoMax' Koeffizienten.
+    rhoTri(rand(length(rhoTri),1) < 0.25) = rhoMax;
+end
+indElementsrhoMax = (rhoTri == rhoMax); % Logischer Vektor, welche Elemente in rhoMax liegen
 
-indElementsrhoMax = (pho == rhoMax); % Logischer Vektor, welche Elemente in rhoMax liegen
 
 %% Definiere maximalen Koeffizienten pro TG 
+rhoTriSD = cell(numSD,1);
 maxRhoSD = zeros(numSD,1);
 for i = 1:numSD
-    maxRhoSD(i) = max(pho(logicalTri__sd{i}));
+    rhoTriSD{i} = rhoTri(logicalTri__sd{i});
+    maxRhoSD(i) = max(rhoTriSD{i});
 end
 
 %% Definiere maximalen Koeffizienten pro Knoten
@@ -54,39 +65,59 @@ for i = 1:numVert % Iteriere ueber Knoten
             cnt = cnt+1;
         end
     end
-    maxRhoVert(i) = max(pho(vertTris{i}));
+    maxRhoVert(i) = max(rhoTri(vertTris{i}));
 end
 
 
 %% Plotten des Gitters mit Kanal
-figure()
+figure("Name","Triangulierung des Gebiets mit Koeffizientenfunktion");
 patch('vertices',vert,'faces',tri,'edgecol','k','facecol',[1,1,1]); hold on; axis equal tight;
 patch('vertices',vert,'faces',tri(indElementsrhoMax,:),'edgecol','k','facecol',[.8,.9,1]);
+for i = 1:N-1
+    line([0,1],[i/N,i/N],'LineWidth', 1, 'color', 'r')
+    line([i/N,i/N],[0,1],'LineWidth', 1, 'color', 'r')
+end
+legend('\rho = 1','\rho = 10^6','Interface','','','')
+title("Triangulierung mit Koeffizientenfunktion")
 
-%% Loesen des Systems mit FETI-DP erstmal Identitaet
-[cu,u_FETIDP_glob] = fetidp(numSD,vert,numVert,vert__sd,tri__sd,edges,numEdges,l2g__sd,f,dirichlet,VK,maxRhoSD,maxRhoVert,true);
-                
-%% compare residuals
-[K,~,b] = assemble(tri,vert,1,f);
+%% Aufstellen der Referenzloesung
+% Als Referenzloesung dient die Loesung des global assemblierten Sysmtems
+% mit Backslash-Operator
+[K,~,b] = assemble(tri,vert,1,f,rhoTri);
 K_II = K(~dirichlet,~dirichlet);
 b_I = b(~dirichlet);
 
-u_global = zeros(size(vert,1),1);
-u_global(~dirichlet) = K_II\b_I;
+u_ref = zeros(size(vert,1),1);
+u_ref(~dirichlet) = K_II\b_I;
 
-diff = u_FETIDP_glob-u_global;
-fprintf("Norm der Differenz: %e\n", norm(diff))
+%% Loesen des Systems mit FETI-DP fuer versch. VK
+diffs = cell(length(VK_vec),1);
+iters = cell(length(VK_vec),1);
+kappa_ests = cell(length(VK_vec),1);
 
-% %% Global system PCG
-% tol = 10^(-8);
-% hK = @(vert) K_II * vert;
-% [lambda,resid,iter,kappa_est] = preCG(hK,speye(size(K_II)),b_I,zeros(length(K_II),1),tol);
-% fprintf("#### Global assembliertes System ####\n")
-% fprintf("Anzahl Iterationen: %i\n",iter)
-% fprintf("Schaetzung Konditionszahl: %e\n",kappa_est)
+fig_VK_comp = figure("Name","Loesungen fuer verschiedene Vorkonditionierer");
+tiledlayout('flow')
+for vk_ind = 1:length(VK_vec)
+    VK = VK_vec{vk_ind};
 
+    [cu,u_FETIDP_glob,~,iters{vk_ind},kappa_ests{vk_ind}] = fetidp_constraint(vert__sd,tri__sd,l2g__sd,f,...
+                                                 dirichlet,VK,'adaptive',rhoTri,rhoTriSD,...
+                                                 maxRhoVert,vertTris,...
+                                                 logicalTri__sd,true);
+    diffs{vk_ind} = norm(u_FETIDP_glob-u_ref);
 
-% %% Teil b)
-% ploth = @(lambda,iter) plotiter(lambda,iter,cB_B,cK_BB,cK_PiB,cb_B,cPrimalMap, ...
-%                                 l2g__sd,cPrimal,cIDual,S_PiPi,f_PiTilde,f_B,tri__sd,vert__sd);
-% % preCG(hF,speye(n_LM),d,zeros(n_LM,1),tol,ploth);
+    figure(fig_VK_comp)
+    nexttile
+    hold on
+    for sd = 1:length(tri__sd)
+        trisurf(tri__sd{sd},vert__sd{sd}(:,1),vert__sd{sd}(:,2),cu{sd});
+    end
+    xlabel("x"); ylabel("y"); zlabel("z");
+    title(sprintf("Finale Loesung: %s-VK",VK));
+    view(3)
+    hold off
+end
+
+%% Ergebnistabelle
+rowNames = ["Anzahl Iterationen","Konditionszahl","Abweichung von Referenzloesung"];
+T_results = cell2table([iters';kappa_ests';diffs'],"RowNames",rowNames,"VariableNames",VK_vec)

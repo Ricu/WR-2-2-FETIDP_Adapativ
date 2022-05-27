@@ -33,16 +33,16 @@ f = @(vert,y) ones(size(vert));   % Rechte Seite der DGL
 % rhoMax zum Vergleich der rhoMin/rhoMax zur Konditionszahl
 %rhoMax_vec = [1,10,10^2,10^3,10^4,10^5,10^6,10^7,10^8];
 rhoMax_vec = 10^6;
+rhoMin = 1;
+rhoTri = rhoMin*ones(numTri,1);
+% Definiere Kanal
+xMin=14/30; xMax=16/30;
+yMin=3/30;  yMax=27/30;
+indVertCanal = (xMin <= vert(:,1) & vert(:,1) <= xMax & yMin <= vert(:,2) & vert(:,2) <= yMax);  % Logischer Vektor, welche Knoten im Kanal liegen
+numVertCanal = 1:numVert;
+numVertCanal = numVertCanal(indVertCanal); % Knotennummern der Knoten, die im Kanal liegen
 for r = 1:length(rhoMax_vec)
     rhoMax = rhoMax_vec(r);
-    rhoMin = 1;
-    rhoTri = rhoMin*ones(numTri,1);
-    % Definiere Kanal
-    xMin=14/30; xMax=16/30;
-    yMin=3/30;  yMax=27/30;
-    indVertCanal = (xMin <= vert(:,1) & vert(:,1) <= xMax & yMin <= vert(:,2) & vert(:,2) <= yMax);  % Logischer Vektor, welche Knoten im Kanal liegen
-    numVertCanal = 1:numVert;
-    numVertCanal = numVertCanal(indVertCanal); % Knotennummern der Knoten, die im Kanal liegen
     for i=1:numTri % Iteriere ueber die Elemente
         if ismember(tri(i,:),numVertCanal) % Alle Knoten des Elements liegen im Kanal
         rhoTri(i)=rhoMax;    % Im Kanal entspricht die Koeffizientenfunktion 10^6
