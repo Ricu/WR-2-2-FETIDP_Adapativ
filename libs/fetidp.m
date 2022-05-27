@@ -1,4 +1,4 @@
-function [cu,u_FETIDP_glob,lambda,iter,kappa_est] = fetidp(vert__sd,tri__sd,l2g__sd,f,dirichlet,VK,rhoTri,rhoTriSD,maxRhoVert,vertTris,logicalTri__sd,plot)
+function [cu,u_FETIDP_glob,lambda,iter,kappa_est] = fetidp(vert__sd,tri__sd,l2g__sd,f,dirichlet,VK,rhoTriSD,maxRhoVert,maxRhoVertSD,tol,x0,resid)
 numSD = length(vert__sd);
 numVert = length(dirichlet);
 
@@ -85,23 +85,13 @@ for i = 1:length(cLM)
 end
 
 %% Sprungoperator aufstellen: mit Skalierung
-% Definiere maximalen Koeffizienten pro dualen Knoten (teilgebietsweise)
-maxRhoDual = zeros(length(cLM),2);
-dualTris = cell(length(cLM),1);
 row_ind_LM = 1;
 for i = 1:length(cLM) % Iteriere ueber duale Knoten
     globNum = l2g__sd{cLM{i}(1,1)}(cLM{i}(2,1));    % Globale Knotennummer des dualen Knotens
-    dualTris{i} = vertTris{globNum};   % Enthaelt fuer den dualen Knoten die Dreiecke in denen er liegt
-    cnt = 1;
-    for j = cLM{i}(1,:)    % Iteriere ueber TG in denen dualer Knoten liegt
-        dualSDTris = intersect(dualTris{i},find(logicalTri__sd{j})); % Dreiecke des dualen Knotens UND im entsprechenden TG
-        maxRhoDual(i,cnt)=max(rhoTri(dualSDTris)); % Maximaler Koeffizient
-        cnt = cnt+1;
-    end
-    sumMaxRhoDual = sum(maxRhoDual(i,:)); % Summer ueber maximale Koeffizienten zu diesem Knoten
+    sumMaxRhoDual = sum(maxRhoVertSD{globNum}); % Summer ueber maximale Koeffizienten der TG zu diesem Knoten
     % Verwende zur Skalierung jeweils den Koeffizienten des anderen TG
-    cBskal{cLM{i}(1,1)}(row_ind_LM,cLM{i}(2,1)) = (maxRhoDual(i,2)/sumMaxRhoDual)*cB{cLM{i}(1,1)}(row_ind_LM,cLM{i}(2,1));
-    cBskal{cLM{i}(1,2)}(row_ind_LM,cLM{i}(2,2)) = (maxRhoDual(i,1)/sumMaxRhoDual)*cB{cLM{i}(1,2)}(row_ind_LM,cLM{i}(2,2));
+    cBskal{cLM{i}(1,1)}(row_ind_LM,cLM{i}(2,1)) = (maxRhoVertSD{globNum}(2)/sumMaxRhoDual)*cB{cLM{i}(1,1)}(row_ind_LM,cLM{i}(2,1));
+    cBskal{cLM{i}(1,2)}(row_ind_LM,cLM{i}(2,2)) = (maxRhoVertSD{globNum}(1)/sumMaxRhoDual)*cB{cLM{i}(1,2)}(row_ind_LM,cLM{i}(2,2));
     row_ind_LM = row_ind_LM + 1;
 end
 
@@ -184,7 +174,6 @@ for i = 1:numEdges % Iteriere ueber TG-Kanten
     edgesDual{i} = mapDual(edgesDualGlobal{i}); % Enthaelt fuer die TG-Kanten die dualen Knoten (DUALE Knotennummern)
 end
 
-
 %% Definiere Matrix U
 U = zeros(n_LM,numEdges);
 for i = 1:numEdges % Iteriere ueber Kanten
@@ -195,7 +184,6 @@ for i = 1:numEdges % Iteriere ueber Kanten
     end
 end
 
-
 %% Definiere Projektion P
 UFU = U'*hF(U);
 invUFU = UFU\eye(size(UFU));
@@ -205,8 +193,7 @@ IminusP = @(x) x-P(x);
 IminusP_transpose = @(x) x-P_transpose(x);
 
 
-%% PCG + Vorkonditionierer neu
-
+%% PCG mit Vorkonditionierer
 if strcmp('Identitaet',VK)
     % Identitaet VK
     invM  = @(x) x;
@@ -224,20 +211,18 @@ else
 end
 
 invMF = invM(hF(eye(size(U,1))));
-eigenwerte = eig(invMF);
-eigenwerte = sort(eigenwerte,'descend');
-EW50 = eigenwerte(1:50);
+eigval = eig(invMF);
+eigval = sort(eigval,'descend');
+eigval_max50 = eigval(1:50);
 
 %% PCG
-tol = 10^(-8);
-x0 = zeros(n_LM,1);
 ploth = @(lambda,iter,VK) plotiter(lambda,iter,VK,cB_B,cK_BB,cK_PiB,cb_B,cPrimalMap, ...
     l2g__sd,cPrimal,cIDual,S_PiPi,f_PiTilde,f_B,tri__sd,vert__sd);
-
-[lambda,~,iter,kappa_est] = preCG(hF,invM,d,x0,tol,VK,ploth,U,invUFU,d);
+x0Vec = x0(n_LM);
+[lambda,~,iter,kappa_est] = preCG(hF,invM,d,x0Vec,tol,resid,VK,ploth,U,invUFU,d);
 
 % Korrektur bei Deflation-VK notwendig
-if strcmp('Deflation',VK)  % Deflation-VK M^-1_PP
+if strcmp('Deflation',VK) 
     lambdaBar = U*invUFU*U'*d;
     lambda = lambdaBar+lambda;
 end
