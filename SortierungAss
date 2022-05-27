@@ -1,4 +1,4 @@
-<mxfile host="app.diagrams.net" modified="2022-05-27T10:29:05.913Z" agent="5.0 (Windows)" etag="wpJetDZqNP0Kufyz0PmJ" version="18.1.3" type="github">
+<mxfile host="app.diagrams.net" modified="2022-05-27T11:49:43.530Z" agent="5.0 (Windows)" etag="sKuygU6wX2uX7ckDLLkM" version="18.1.3" type="github">
   <diagram id="SexF_lPcDcFhaPGjDexB" name="Page-1">
     <mxGraphModel dx="2310" dy="766" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" background="none" math="1" shadow="0">
       <root>
@@ -67,13 +67,13 @@
         <mxCell id="zrCPpHR2-gFHkn6hHN67-24" value="" style="shape=curlyBracket;whiteSpace=wrap;html=1;rounded=1;fontSize=30;strokeWidth=3;" vertex="1" parent="1">
           <mxGeometry x="-240" y="150" width="20" height="180" as="geometry" />
         </mxCell>
-        <mxCell id="zrCPpHR2-gFHkn6hHN67-26" value="$$\tilde{G}_i$$" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=30;" vertex="1" parent="1">
+        <mxCell id="zrCPpHR2-gFHkn6hHN67-26" value="$$\bar{G}_i$$" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=30;" vertex="1" parent="1">
           <mxGeometry x="-310" y="225" width="60" height="30" as="geometry" />
         </mxCell>
         <mxCell id="zrCPpHR2-gFHkn6hHN67-27" value="" style="shape=curlyBracket;whiteSpace=wrap;html=1;rounded=1;fontSize=30;strokeWidth=3;" vertex="1" parent="1">
           <mxGeometry x="-240" y="390" width="20" height="180" as="geometry" />
         </mxCell>
-        <mxCell id="zrCPpHR2-gFHkn6hHN67-28" value="$$\tilde{G}_j$$" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=30;" vertex="1" parent="1">
+        <mxCell id="zrCPpHR2-gFHkn6hHN67-28" value="$$\bar{G}_j$$" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=30;" vertex="1" parent="1">
           <mxGeometry x="-310" y="465" width="60" height="30" as="geometry" />
         </mxCell>
         <mxCell id="zrCPpHR2-gFHkn6hHN67-29" value="$$=R_{ij}$$" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=30;" vertex="1" parent="1">
