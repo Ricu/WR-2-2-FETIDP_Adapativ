@@ -18,9 +18,9 @@ else % nicht-vorkonditioniert
 end
 
 figure("Name","Loesungen waehrend der Iteration von PCG")
-while termCond > tol %norm(rk)/norm(r0) > tol %
+while termCond > tol 
     if nargin > 5 && iter < 4
-        if strcmp('Deflation',VK)
+        if strcmp('Deflation',VK) && iter > 0
             xBar = U*invUFU*U'*d;   % Korrektur bei Deflation-VK notwendig
             ploth(xk+xBar,iter,VK);
         else
