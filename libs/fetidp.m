@@ -210,11 +210,6 @@ else
     end
 end
 
-invMF = invM(hF(eye(size(U,1))));
-eigval = eig(invMF);
-eigval = sort(eigval,'descend');
-eigval_max50 = eigval(1:50);
-
 %% PCG
 ploth = @(lambda,iter,VK) plotiter(lambda,iter,VK,cB_B,cK_BB,cK_PiB,cb_B,cPrimalMap, ...
     l2g__sd,cPrimal,cIDual,S_PiPi,f_PiTilde,f_B,tri__sd,vert__sd);

@@ -1,4 +1,4 @@
-function [cu,u_FETIDP_glob,lambda,iter,kappa_est,topEW] = fetidp_constraint(vert__sd,tri__sd,l2g__sd,f,dirichlet,VK,constraint_type,rhoTri,rhoTriSD,maxRhoVert,vertTris,logicalTri__sd,plot)
+function [cu,u_FETIDP_glob,lambda,iter,kappa_est,topEW] = fetidp_constraint(vert__sd,tri__sd,l2g__sd,f,dirichlet,VK,constraint_type,rhoTriSD,maxRhoVert,maxRhoVertSD,tol,x0,resid)
 % constraint types (constraint_type): 
 % 'none' (Vanilla FETIDP)
 % 'non-adaptive' (Aufgabe Teil 1), 
@@ -87,26 +87,15 @@ for i = 1:length(cLM)
 end
 
 %% Sprungoperator aufstellen: mit Skalierung
-% Definiere maximalen Koeffizienten pro dualen Knoten (teilgebietsweise)
-maxRhoDual = zeros(length(cLM),2);
-dualTris = cell(length(cLM),1);
 row_ind_LM = 1;
 for i = 1:length(cLM) % Iteriere ueber duale Knoten
     globNum = l2g__sd{cLM{i}(1,1)}(cLM{i}(2,1));    % Globale Knotennummer des dualen Knotens
-    dualTris{i} = vertTris{globNum};   % Enthaelt fuer den dualen Knoten die Dreiecke in denen er liegt
-    cnt = 1;
-    for j = cLM{i}(1,:)    % Iteriere ueber TG in denen dualer Knoten liegt
-        dualSDTris = intersect(dualTris{i},find(logicalTri__sd{j})); % Dreiecke des dualen Knotens UND im entsprechenden TG
-        maxRhoDual(i,cnt)=max(rhoTri(dualSDTris)); % Maximaler Koeffizient
-        cnt = cnt+1;
-    end
-    sumMaxRhoDual = sum(maxRhoDual(i,:)); % Summer ueber maximale Koeffizienten zu diesem Knoten
+    sumMaxRhoDual = sum(maxRhoVertSD{globNum}); % Summer ueber maximale Koeffizienten der TG zu diesem Knoten
     % Verwende zur Skalierung jeweils den Koeffizienten des anderen TG
-    cBskal{cLM{i}(1,1)}(row_ind_LM,cLM{i}(2,1)) = (maxRhoDual(i,2)/sumMaxRhoDual)*cB{cLM{i}(1,1)}(row_ind_LM,cLM{i}(2,1));
-    cBskal{cLM{i}(1,2)}(row_ind_LM,cLM{i}(2,2)) = (maxRhoDual(i,1)/sumMaxRhoDual)*cB{cLM{i}(1,2)}(row_ind_LM,cLM{i}(2,2));
+    cBskal{cLM{i}(1,1)}(row_ind_LM,cLM{i}(2,1)) = (maxRhoVertSD{globNum}(2)/sumMaxRhoDual)*cB{cLM{i}(1,1)}(row_ind_LM,cLM{i}(2,1));
+    cBskal{cLM{i}(1,2)}(row_ind_LM,cLM{i}(2,2)) = (maxRhoVertSD{globNum}(1)/sumMaxRhoDual)*cB{cLM{i}(1,2)}(row_ind_LM,cLM{i}(2,2));
     row_ind_LM = row_ind_LM + 1;
 end
-
 
 %% Assembliere die Steifigkeitsmatrix und den Lastvektor
 cK = cell(numSD,1); % Steifigkeitsmatrizen
@@ -395,15 +384,14 @@ ew = sort(ew,'descend');
 topEW = ew(1:min(length(ew),50));
 
 %% PCG
-tol = 10^(-7);
-x0 = zeros(n_LM,1);
+x0Vec = x0(n_LM);
 ploth = @(lambda,iter,VK) plotiter(lambda,iter,VK,cB_B,cK_BB,cK_PiB,cb_B,cPrimalMap, ...
     l2g__sd,cPrimal,cIDual,S_PiPi,f_PiTilde,f_B,tri__sd,vert__sd);
 
 if strcmp(constraint_type,'adaptive') || strcmp(constraint_type,'non-adaptive')
-    [lambda,~,iter,kappa_est] = preCG(hF,invM,d,x0,tol,VK,ploth,U,invUFU,d);
+    [lambda,~,iter,kappa_est] = preCG(hF,invM,d,x0Vec,tol,resid,VK,ploth,U,invUFU,d);
 else
-    [lambda,~,iter,kappa_est] = preCG(hF,invM,d,x0,tol,VK,ploth);
+    [lambda,~,iter,kappa_est] = preCG(hF,invM,d,x0Vec,tol,resid,VK,ploth);
 end
 
 % Korrektur bei Deflation-VK notwendig

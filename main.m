@@ -8,10 +8,10 @@ VK_vec = {'Identitaet',...
           'Balancing'...
           };
       
- %% Parameter fuer PCG
+%% Parameter fuer PCG
 x0 = @(dim) zeros(dim,1); % Startwert
 tol = 10^(-8); % Toleranz
-% Residuum fuer die Abbruchbedingung bei PCG
+% Residuum fuer die Abbruchbedingung
 %resid = {'vorkonditioniert'}; 
 resid = {'nicht-vorkonditioniert'};
 

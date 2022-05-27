@@ -12,6 +12,13 @@ VK_vec = {...
 
 TOL_vec = [1,5,10,50,100,500];
 
+%% Parameter fuer PCG
+x0 = @(dim) zeros(dim,1); % Startwert
+tol = 10^(-7); % Toleranz
+% Residuum fuer die Abbruchbedingung
+resid = {'vorkonditioniert'}; 
+%resid = {'nicht-vorkonditioniert'};
+
 %% Erstelle das Gitter
 n = 10; % 2*n^2 Elemente pro Teilgebiet
 N = 5;  % Partition in NxN quadratische Teilgebiete
@@ -51,29 +58,32 @@ for r = 1:length(rhoMax_vec)
 end
 indElementsrhoMax = (rhoTri == rhoMax); % Logischer Vektor, welche Elemente in rhoMax liegen
 
-
-%% Definiere maximalen Koeffizienten pro TG 
 rhoTriSD = cell(numSD,1);
-maxRhoSD = zeros(numSD,1);
 for i = 1:numSD
     rhoTriSD{i} = rhoTri(logicalTri__sd{i});
-    maxRhoSD(i) = max(rhoTriSD{i});
 end
 
 %% Definiere maximalen Koeffizienten pro Knoten
 maxRhoVert = zeros(numVert,1);
-vertTris = cell(numVert,1); % Enthaelt fuer jeden Knoten die Dreiecke in denen er liegt
+vertTris = cell(numVert,1); 
+maxRhoVertSD = cell(numVert,1);
 for i = 1:numVert % Iteriere ueber Knoten
     iVec = i*ones(1,size(tri,2));
     cnt = 1;
     for j = 1:numTri % Iteriere ueber Dreiecke
         testMembership = ismember(iVec,tri(j,:)); 
         if nnz(testMembership) > 1    % Pruefe, ob Knoten im Dreieck liegt
-            vertTris{i}(cnt) = j;
+            vertTris{i}(cnt) = j;   % Enthaelt fuer jeden Knoten die Dreiecke in denen er liegt
             cnt = cnt+1;
         end
     end
-    maxRhoVert(i) = max(rhoTri(vertTris{i}));
+    maxRhoVert(i) = max(rhoTri(vertTris{i})); % maximaler Koeffizient pro Knoten
+    
+    %% Definiere maximalen Koeffizienten pro Knoten teilgebietsweise
+    for k = 1:numSD
+        vertTrisSD = logicalTri__sd{k}(vertTris{i}); % logischer Vektor welche Dreiecke des Knotens im TG liegen
+        maxRhoVertSD{i} = [maxRhoVertSD{i},max(rhoTri(vertTris{i}(vertTrisSD)))]; % maximalen Koeffizienten pro Knoten teilgebietsweise
+    end
 end
 
 
@@ -109,9 +119,8 @@ for vk_ind = 1:length(VK_vec)
     VK = VK_vec{vk_ind};
 
     [cu,u_FETIDP_glob,~,iters{vk_ind},kappa_ests{vk_ind}] = fetidp_constraint(vert__sd,tri__sd,l2g__sd,f,...
-                                                 dirichlet,VK,'adaptive',rhoTri,rhoTriSD,...
-                                                 maxRhoVert,vertTris,...
-                                                 logicalTri__sd,true);
+                                                 dirichlet,VK,'adaptive',rhoTriSD,...
+                                                 maxRhoVert,maxRhoVertSD,tol,x0,resid);
     diffs{vk_ind} = norm(u_FETIDP_glob-u_ref);
 
     figure(fig_VK_comp)
