@@ -38,7 +38,7 @@ f = @(vert,y) ones(size(vert));   % Rechte Seite der DGL
 xMin=14/30; xMax=16/30;
 yMin=3/30;  yMax=27/30;
 
-%Definiere rho im Kanal und sonst
+% Definiere rho im Kanal und sonst
 rhoCanal = 10^6;
 rhoNotCanal = 1;
 
