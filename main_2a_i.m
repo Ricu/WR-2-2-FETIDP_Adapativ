@@ -2,13 +2,9 @@ clear; clc;
 addpath('libs')
 
 %% Definiere Vorkonditionierer
-VK_vec = {...
-          'Identitaet',...
-          'Dirichlet',...
+VK_vec = {'Dirichlet',...
           'Deflation',...
-          'Balancing'...
           };
-% VK_vec = {'Deflation'};
 
 TOL_vec = [1,5,10,50,100,500];
 
@@ -18,7 +14,6 @@ tol = 10^(-7); % Toleranz
 % Residuum fuer die Abbruchbedingung
 resid = {'vorkonditioniert'}; 
 %resid = {'nicht-vorkonditioniert'};
-
 
 %% Erstelle das Gitter
 n = 10; % 2*n^2 Elemente pro Teilgebiet
@@ -37,55 +32,22 @@ dirichlet = or(ismember(vert(:,1),xyLim), ismember(vert(:,2),xyLim));
 
 %% PDE
 f = @(vert,y) ones(size(vert));   % Rechte Seite der DGL
-% Definiere Koeffizientenfunktion
-% rhoMax zum Vergleich der rhoMin/rhoMax zur Konditionszahl
-%rhoMax_vec = [1,10,10^2,10^3,10^4,10^5,10^6,10^7,10^8];
-rhoMax_vec = 10^6;
-rhoMin = 1;
-rhoTri = rhoMin*ones(numTri,1);
-% Definiere Kanal
+
+%% Definiere Kanal-Koeffizientenfunktion
+% Definiere Bereich des Kanals
 xMin=14/30; xMax=16/30;
 yMin=3/30;  yMax=27/30;
-indVertCanal = (xMin <= vert(:,1) & vert(:,1) <= xMax & yMin <= vert(:,2) & vert(:,2) <= yMax);  % Logischer Vektor, welche Knoten im Kanal liegen
-numVertCanal = 1:numVert;
-numVertCanal = numVertCanal(indVertCanal); % Knotennummern der Knoten, die im Kanal liegen
-for r = 1:length(rhoMax_vec)
-    rhoMax = rhoMax_vec(r);
-    for i=1:numTri % Iteriere ueber die Elemente
-        if ismember(tri(i,:),numVertCanal) % Alle Knoten des Elements liegen im Kanal
-        rhoTri(i)=rhoMax;    % Im Kanal entspricht die Koeffizientenfunktion 10^6
-        end
-    end
-end
-indElementsCanal = (rhoTri == rhoMax); % Logischer Vektor, welche Elemente im Kanal liegen
 
-rhoTriSD = cell(numSD,1);
-for i = 1:numSD
-    rhoTriSD{i} = rhoTri(logicalTri__sd{i});
-end
+% Definiere rho im Kanal und sonst
+% rhoCanal zum Vergleich der rhoMin/rhoMax zur Konditionszahl
 
-%% Definiere maximalen Koeffizienten pro Knoten
-maxRhoVert = zeros(numVert,1);
-vertTris = cell(numVert,1); 
-maxRhoVertSD = cell(numVert,1);
-for i = 1:numVert % Iteriere ueber Knoten
-    iVec = i*ones(1,size(tri,2));
-    cnt = 1;
-    for j = 1:numTri % Iteriere ueber Dreiecke
-        testMembership = ismember(iVec,tri(j,:)); 
-        if nnz(testMembership) > 1    % Pruefe, ob Knoten im Dreieck liegt
-            vertTris{i}(cnt) = j;   % Enthaelt fuer jeden Knoten die Dreiecke in denen er liegt
-            cnt = cnt+1;
-        end
-    end
-    maxRhoVert(i) = max(rhoTri(vertTris{i})); % maximaler Koeffizient pro Knoten
-    
-    %% Definiere maximalen Koeffizienten pro Knoten teilgebietsweise
-    for k = 1:numSD
-        vertTrisSD = logicalTri__sd{k}(vertTris{i}); % logischer Vektor welche Dreiecke des Knotens im TG liegen
-        maxRhoVertSD{i} = [maxRhoVertSD{i},max(rhoTri(vertTris{i}(vertTrisSD)))]; % maximalen Koeffizienten pro Knoten teilgebietsweise
-    end
-end
+%rhoCanal_vec = [1,10,10^2,10^3,10^4,10^5,10^6,10^7,10^8];
+rhoCanal = 10^6;
+rhoNotCanal = 1;
+
+% Definiere Koeffizient auf den Elementen (und teilgebietsweise);
+% maximalen Koeffizienten pro Knoten (und teilgebietsweise)
+[rhoTri,rhoTriSD,indElementsCanal,maxRhoVert,maxRhoVertSD] = coefficient(xMin,xMax,yMin,yMax,rhoCanal,rhoNotCanal,vert,tri,numVert,numTri,numSD,logicalTri__sd);
 
 
 %% Plotten des Gitters mit Kanal
