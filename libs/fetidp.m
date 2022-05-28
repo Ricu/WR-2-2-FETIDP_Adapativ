@@ -1,4 +1,4 @@
-function [cu,u_FETIDP_glob,lambda,iter,kappa_est] = fetidp(vert__sd,tri__sd,l2g__sd,f,dirichlet,VK,rhoTriSD,maxRhoVert,maxRhoVertSD,tol,x0,resid)
+function [cu,u_FETIDP_glob,lambda,iter,kappa_est,termCond] = fetidp(vert__sd,tri__sd,l2g__sd,f,dirichlet,VK,rhoTriSD,maxRhoVert,maxRhoVertSD,tol,x0,resid)
 numSD = length(vert__sd);
 numVert = length(dirichlet);
 
@@ -214,7 +214,10 @@ end
 ploth = @(lambda,iter,VK) plotiter(lambda,iter,VK,cB_B,cK_BB,cK_PiB,cb_B,cPrimalMap, ...
     l2g__sd,cPrimal,cIDual,S_PiPi,f_PiTilde,f_B,tri__sd,vert__sd);
 x0Vec = x0(n_LM);
-[lambda,~,iter,kappa_est] = preCG(hF,invM,d,x0Vec,tol,resid,VK,ploth,U,invUFU,d);
+
+[lambda,~,iter,kappa_est,~,~,termCond] = preCG_termCond(hF,invM,d,x0Vec,tol,resid,VK,ploth,U,invUFU,d);
+
+
 
 % Korrektur bei Deflation-VK notwendig
 if strcmp('Deflation',VK) 

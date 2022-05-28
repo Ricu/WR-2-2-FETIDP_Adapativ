@@ -72,17 +72,19 @@ u_ref(~dirichlet) = K_II\b_I;
 diffs = cell(length(VK_vec),1);
 iters = cell(length(VK_vec),1);
 kappa_ests = cell(length(VK_vec),1);
+termCond = cell(length(VK_vec),1);
 
-fig_VK_comp = figure("Name","Loesungen fuer verschiedene Vorkonditionierer");
+fig_VK_comp_solution = figure("Name","Loesungen fuer verschiedene Vorkonditionierer");
+fig_VK_comp_termCond = figure("Name",sprintf("Verlauf des %s Residuums fuer verschiedene Vorkonditionierer",append(resid{1},"en")));
 tiledlayout('flow')
 for vk_ind = 1:length(VK_vec)
     VK = VK_vec{vk_ind};
-    [cu,u_FETIDP_glob,~,iters{vk_ind},kappa_ests{vk_ind}] = fetidp(vert__sd,tri__sd,l2g__sd,...
+    [cu,u_FETIDP_glob,~,iters{vk_ind},kappa_ests{vk_ind},termCond{vk_ind}] = fetidp(vert__sd,tri__sd,l2g__sd,...
                                     f,dirichlet,VK,rhoTriSD,maxRhoVert,maxRhoVertSD,tol,x0,resid);
                                                  
     diffs{vk_ind} = norm(u_FETIDP_glob-u_ref);
 
-    figure(fig_VK_comp)
+    figure(fig_VK_comp_solution)
     nexttile
     hold on
     for sd = 1:length(tri__sd)
@@ -92,6 +94,21 @@ for vk_ind = 1:length(VK_vec)
     title(sprintf("Finale Loesung: %s-VK",VK));
     view(3)
     hold off
+    
+    figure(fig_VK_comp_termCond)
+    nexttile
+    hold on
+    plot(1:iters{vk_ind},termCond{vk_ind});
+    xlabel("Iteration"); ylabel("Relatives Residuum");
+    if strcmp('vorkonditioniert',resid) && strcmp('Dirichlet',VK)
+        xlim([0,iters{vk_ind}])
+        ylim([0 termCond{vk_ind}(1)+0.1])
+    end
+    title(sprintf("%s Residuum: %s-VK",append(resid{1},"es"),VK));
+    view(2)
+    hold off
+    
+    
 end
 
 %% Ergebnistabelle
