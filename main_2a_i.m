@@ -47,7 +47,7 @@ rhoNotCanal = 1;
 
 % Definiere Koeffizient auf den Elementen (und teilgebietsweise);
 % maximalen Koeffizienten pro Knoten (und teilgebietsweise)
-[rhoTri,rhoTriSD,indElementsCanal,maxRhoVert,maxRhoVertSD] = coefficient(xMin,xMax,yMin,yMax,rhoCanal,rhoNotCanal,vert,tri,numVert,numTri,numSD,logicalTri__sd);
+[rhoTri,rhoTriSD,indElementsCanal,maxRhoVert,maxRhoVertSD] = coefficient_1(xMin,xMax,yMin,yMax,rhoCanal,rhoNotCanal,vert,tri,numVert,numTri,numSD,logicalTri__sd);
 
 
 %% Plotten des Gitters mit Kanal
