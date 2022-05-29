@@ -1,4 +1,4 @@
-function [cu,u_FETIDP_glob,lambda,iter,kappa_est,topEW] = fetidp_constraint(vert__sd,tri__sd,l2g__sd,f,dirichlet,VK,constraint_type,rhoTriSD,maxRhoVert,maxRhoVertSD,tol,x0,resid)
+function [cu,u_FETIDP_glob,lambda,iter,kappa_est,topEW] = fetidp_constraint(TOL,vert__sd,tri__sd,l2g__sd,f,dirichlet,VK,constraint_type,rhoTriSD,maxRhoVert,maxRhoVertSD,tol,x0,resid)
 % constraint types (constraint_type): 
 % 'none' (Vanilla FETIDP)
 % 'non-adaptive' (Aufgabe Teil 1), 
@@ -337,7 +337,7 @@ if strcmp(constraint_type,'adaptive') || strcmp(constraint_type,'non-adaptive')
 
             %% Verallgmeinertes Eigenwertproblem loesen
             [eigenvalues, eigenvectors] = adaptiveEigenvalues(c, pi, P_D_e, S,sigma);
-            TOL = 100;
+            
             eigenvectors = eigenvectors(:,diag(eigenvalues) > TOL);
 
             % Extrahiere u
