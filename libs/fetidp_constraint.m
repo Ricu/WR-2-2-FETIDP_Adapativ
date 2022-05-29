@@ -234,11 +234,11 @@ if strcmp(constraint_type,'adaptive') || strcmp(constraint_type,'non-adaptive')
             R_1 = zeros(nGammaUnass,nDual(1));
             R_2 = zeros(nGammaUnass,nDual(2));
             % Knotensortierung in Spalten ist:
-            % primal, dual(1), dual(2)
+            % primal, rest(1), rest(2)
             % Knotensortierung in Zeilen ist:
-            % primal(1), primal(2), dual(1), dual(2)
+            % gamma(1), gamma(2) (=primal(1),rest(1),primal(2),rest(2))
             % Alternative Knotensortierung in Zeilen wäre:
-            % gamma(1), gamma(2) (=primal(1),dual(1),primal(2),dual(2))
+            % primal(1), primal(2), rest(1), rest(2)
             P_e(1:nPrimal,1:nPrimal) = eye(nPrimal);
             R_1(nPrimal+1 : nGamma(1),:) = eye(nDual(1));
 
