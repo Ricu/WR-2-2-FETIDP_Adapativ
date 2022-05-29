@@ -1,4 +1,4 @@
-function [cu,u_FETIDP_glob,lambda,iter,kappa_est] = fetidp(vert__sd,tri__sd,l2g__sd,f,dirichlet,VK,rhoTriSD,maxRhoVert,maxRhoVertSD,tol,x0,resid)
+function [cu,u_FETIDP_glob,lambda,iter,kappa_est,termCond] = fetidp_defl_bal(vert__sd,tri__sd,l2g__sd,f,dirichlet,VK,rhoTriSD,maxRhoVert,maxRhoVertSD,tol,x0,resid)
 numSD = length(vert__sd);
 numVert = length(dirichlet);
 
@@ -211,10 +211,12 @@ else
 end
 
 %% PCG
-ploth = @(lambda,iter,VK) plotiter(lambda,iter,VK,cB_B,cK_BB,cK_PiB,cb_B,cPrimalMap, ...
-    l2g__sd,cPrimal,cIDual,S_PiPi,f_PiTilde,f_B,tri__sd,vert__sd);
 x0Vec = x0(n_LM);
-[lambda,~,iter,kappa_est] = preCG(hF,invM,d,x0Vec,tol,resid,VK,ploth,U,invUFU,d);
+ploth = @(lambda,iter,VK) plotiter(lambda,iter,VK,cB_B,cK_BB,cK_PiB,cb_B,cPrimalMap, ...
+                                    l2g__sd,cPrimal,cIDual,S_PiPi,f_PiTilde,f_B, ...
+                                    tri__sd,vert__sd);
+
+[lambda,iter,kappa_est,~,~,termCond] = preCG_termCond(hF,invM,d,x0Vec,tol,resid,VK,ploth,U,invUFU,IminusP_transpose);
 
 % Korrektur bei Deflation-VK notwendig
 if strcmp('Deflation',VK) 
@@ -225,56 +227,6 @@ end
 %% Extrahiere Loesung u_i
 [cu,u_FETIDP_glob] = extract_u(lambda,cB_B,cK_BB,cK_PiB,cb_B,cPrimalMap,...
     l2g__sd,cPrimal,cIDual,S_PiPi,f_PiTilde,f_B);
-
-
-%% PCG + Vorkonditionierer alt
-% %% Definiere Vorkonditionierer
-% dirichletVK = @(x) dirVKfunction(numSD,cBskal_Delta,cK_DeltaDelta,cK_II,cK_DeltaI,x);
-% deflationVK = @(x) IminusP(dirichletVK(IminusP_transpose(x)));
-% balancingVK = @(x) deflationVK(x)+U*invUFU*U'*x;
-%
-% %% PCG
-% tol = 10^(-8);
-% x0 = zeros(n_LM,1);
-% % Funktion zum Plotten der Loesungen waehrend der Iteration von PCG
-% ploth = @(lambda,iter,VK) plotiter(lambda,iter,VK,cB_B,cK_BB,cK_PiB,cb_B,cPrimalMap, ...
-%     l2g__sd,cPrimal,cIDual,S_PiPi,f_PiTilde,f_B,tri__sd,vert__sd);
-%
-% lambda = cell(length(VK),1);
-% iter = cell(length(VK),1);
-% kappa_est = cell(length(VK),1);
-% cu = cell(length(VK),1);
-% u_FETIDP_glob = cell(length(VK),1);
-% for i=1:length(VK)
-%     if strcmp('Deflation',VK{i})  % Deflation-VK M^-1_PP
-%         invM  = @(x) deflationVK(x);
-%     elseif strcmp('Balancing',VK{i}) % Balancing-VK M^-1_BP
-%         invM  = @(x) balancingVK(x);
-%     elseif strcmp('Dirichlet',VK{i})  % Dirichlet-VK
-%         invM  = @(x) dirichletVK(x);
-%     elseif strcmp('Identitaet',VK{i})    % Identitaet
-%
-%     end
-%
-%     %% Eigenwerte berechnen (50 groessten)
-%     invMF = invM(hF(eye(size(U,1))));
-%     eigenwerte = eig(invMF);
-%     eigenwerte = sort(eigenwerte,'descend');
-%     EW50 = eigenwerte(1:50);
-%
-%     [lambda{i},~,iter{i},kappa_est{i}] = preCG(hF,invM,d,x0,tol,VK{i},ploth,U,invUFU,d);
-%
-%     % Korrektur bei Deflation-VK notwendig
-%     if strcmp('Deflation',VK{i})  % Deflation-VK M^-1_PP
-%         lambdaBar = U*invUFU*U'*d;
-%         lambda{i} = lambdaBar+lambda{i};
-%     end
-%
-%     %% Extrahiere Loesung u_i
-%     [cu{i},u_FETIDP_glob{i}] = extract_u(lambda{i},cB_B,cK_BB,cK_PiB,cb_B,cPrimalMap,...
-%         l2g__sd,cPrimal,cIDual,S_PiPi,f_PiTilde,f_B);
-%
-% end
 
 end
 

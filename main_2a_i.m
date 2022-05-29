@@ -6,6 +6,8 @@ VK_vec = {'Dirichlet',...
           'Deflation',...
           };
 
+TOL_vec = [1,5,10,50,100,500];
+
 %% Parameter fuer PCG
 x0 = @(dim) zeros(dim,1); % Startwert
 tol = 10^(-7); % Toleranz
@@ -39,72 +41,63 @@ yMin=3/30;  yMax=27/30;
 % Definiere rho im Kanal und sonst
 % rhoCanal zum Vergleich der rhoMin/rhoMax zur Konditionszahl
 
-rhoCanal_vec = [1,10^4,10^8];
-for r = 1: length(rhoCanal_vec)
-    rhoCanal = rhoCanal_vec(r);
-    rhoNotCanal = 1;
-    
-    % Definiere Koeffizient auf den Elementen (und teilgebietsweise);
-    % maximalen Koeffizienten pro Knoten (und teilgebietsweise)
-    [rhoTri,rhoTriSD,indElementsCanal,maxRhoVert,maxRhoVertSD] = coefficient(xMin,xMax,yMin,yMax,rhoCanal,rhoNotCanal,vert,tri,numVert,numTri,numSD,logicalTri__sd);
-    
-    
-    %% Plotten des Gitters mit Kanal
-    figure("Name","Triangulierung des Gebiets mit Koeffizientenfunktion");
-    patch('vertices',vert,'faces',tri,'edgecol','k','facecol',[1,1,1]); hold on; axis equal tight;
-    patch('vertices',vert,'faces',tri(indElementsCanal,:),'edgecol','k','facecol',[.8,.9,1]);
-    for i = 1:N-1
-        line([0,1],[i/N,i/N],'LineWidth', 1, 'color', 'r')
-        line([i/N,i/N],[0,1],'LineWidth', 1, 'color', 'r')
-    end
-    legend('\rho = 1','\rho = 10^6','Interface','','','')
-    title("Triangulierung mit Koeffizientenfunktion")
-    
-    %% Aufstellen der Referenzloesung
-    % Als Referenzloesung dient die Loesung des global assemblierten Sysmtems
-    % mit Backslash-Operator
-    [K,~,b] = assemble(tri,vert,1,f,rhoTri);
-    K_II = K(~dirichlet,~dirichlet);
-    b_I = b(~dirichlet);
-    
-    u_ref = zeros(size(vert,1),1);
-    u_ref(~dirichlet) = K_II\b_I;
-    
-    %% Loesen des Systems mit FETI-DP fuer versch. VK
-    diffs = cell(length(VK_vec),1);
-    iters = cell(length(VK_vec),1);
-    kappa_ests = cell(length(VK_vec),1);
+%rhoCanal_vec = [1,10,10^2,10^3,10^4,10^5,10^6,10^7,10^8];
+rhoCanal = 10^6;
+rhoNotCanal = 1;
 
-    TOL_vec = [10,100,10000];
-    for t = 1 : length(TOL_vec)
-        TOL = TOL_vec(t);
-        fig_VK_comp = figure("Name","Loesungen fuer verschiedene Vorkonditionierer");
-        tiledlayout('flow')
-        for vk_ind = 1:length(VK_vec)
-            VK = VK_vec{vk_ind};
-        
-            [cu,u_FETIDP_glob,~,iters{vk_ind},kappa_ests{vk_ind}] = fetidp_constraint(TOL,vert__sd,tri__sd,l2g__sd,f,...
-                                                         dirichlet,VK,'adaptive',rhoTriSD,...
-                                                         maxRhoVert,maxRhoVertSD,tol,x0,resid);
-            diffs{vk_ind} = norm(u_FETIDP_glob-u_ref);
-        
-            figure(fig_VK_comp)
-            nexttile
-            hold on
-            for sd = 1:length(tri__sd)
-                trisurf(tri__sd{sd},vert__sd{sd}(:,1),vert__sd{sd}(:,2),cu{sd});
-            end
-            xlabel("x"); ylabel("y"); zlabel("z");
-            title(sprintf("Finale Loesung: %s-VK",VK));
-            view(3)
-            hold off
-        end
-        
-        %% Ergebnistabelle
-        rowNames = ["Anzahl Iterationen","Konditionszahl","Abweichung von Referenzloesung"];
-        fprintf('RhoCanal: %g \n',rhoCanal)
-        fprintf('TOL zur Auswahl der EW: %g \n',TOL)
-        T_results = cell2table([iters';kappa_ests';diffs'],"RowNames",rowNames,"VariableNames",VK_vec);
-        disp(T_results)
+% Definiere Koeffizient auf den Elementen (und teilgebietsweise);
+% maximalen Koeffizienten pro Knoten (und teilgebietsweise)
+[rhoTri,rhoTriSD,indElementsCanal,maxRhoVert,maxRhoVertSD] = coefficient_1(xMin,xMax,yMin,yMax,rhoCanal,rhoNotCanal,vert,tri,numVert,numTri,numSD,logicalTri__sd);
+
+
+%% Plotten des Gitters mit Kanal
+figure("Name","Triangulierung des Gebiets mit Koeffizientenfunktion");
+patch('vertices',vert,'faces',tri,'edgecol','k','facecol',[1,1,1]); hold on; axis equal tight;
+patch('vertices',vert,'faces',tri(indElementsCanal,:),'edgecol','k','facecol',[.8,.9,1]);
+for i = 1:N-1
+    line([0,1],[i/N,i/N],'LineWidth', 1, 'color', 'r')
+    line([i/N,i/N],[0,1],'LineWidth', 1, 'color', 'r')
+end
+legend('\rho = 1','\rho = 10^6','Interface','','','')
+title("Triangulierung mit Koeffizientenfunktion")
+
+%% Aufstellen der Referenzloesung
+% Als Referenzloesung dient die Loesung des global assemblierten Sysmtems
+% mit Backslash-Operator
+[K,~,b] = assemble(tri,vert,1,f,rhoTri);
+K_II = K(~dirichlet,~dirichlet);
+b_I = b(~dirichlet);
+
+u_ref = zeros(size(vert,1),1);
+u_ref(~dirichlet) = K_II\b_I;
+
+%% Loesen des Systems mit FETI-DP fuer versch. VK
+diffs = cell(length(VK_vec),1);
+iters = cell(length(VK_vec),1);
+kappa_ests = cell(length(VK_vec),1);
+
+fig_VK_comp = figure("Name","Loesungen fuer verschiedene Vorkonditionierer");
+tiledlayout('flow')
+for vk_ind = 1:length(VK_vec)
+    VK = VK_vec{vk_ind};
+
+    [cu,u_FETIDP_glob,~,iters{vk_ind},kappa_ests{vk_ind}] = fetidp_constraint(vert__sd,tri__sd,l2g__sd,f,...
+                                                 dirichlet,VK,'adaptive',rhoTriSD,...
+                                                 maxRhoVert,maxRhoVertSD,tol,x0,resid);
+    diffs{vk_ind} = norm(u_FETIDP_glob-u_ref);
+
+    figure(fig_VK_comp)
+    nexttile
+    hold on
+    for sd = 1:length(tri__sd)
+        trisurf(tri__sd{sd},vert__sd{sd}(:,1),vert__sd{sd}(:,2),cu{sd});
     end
- end
+    xlabel("x"); ylabel("y"); zlabel("z");
+    title(sprintf("Finale Loesung: %s-VK",VK));
+    view(3)
+    hold off
+end
+
+%% Ergebnistabelle
+rowNames = ["Anzahl Iterationen","Konditionszahl","Abweichung von Referenzloesung"];
+T_results = cell2table([iters';kappa_ests';diffs'],"RowNames",rowNames,"VariableNames",VK_vec)
