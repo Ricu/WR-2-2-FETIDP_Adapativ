@@ -3,8 +3,17 @@ addpath('libs')
 
 %% Definiere Vorkonditionierer
 VK_vec = {'Dirichlet',...
-          'Deflation',...
           };
+
+RhoCanal_vec = {'RhoCanal=10',...
+                'RhoCanal=10^3',...
+                'RhoCanal=10^6',...
+                'RhoCanal=10^8',...
+          };
+
+diffs = cell(length(RhoCanal_vec),1);
+iters = cell(length(RhoCanal_vec),1);
+kappa_ests = cell(length(RhoCanal_vec),1);
 
 %% Parameter fuer PCG
 x0 = @(dim) zeros(dim,1); % Startwert
@@ -39,7 +48,7 @@ yMin=3/30;  yMax=27/30;
 % Definiere rho im Kanal und sonst
 % rhoCanal zum Vergleich der rhoMin/rhoMax zur Konditionszahl
 
-rhoCanal_vec = 10^6;
+rhoCanal_vec = [10,10^3,10^6,10^8];
 for r = 1: length(rhoCanal_vec)
     rhoCanal = rhoCanal_vec(r);
     rhoNotCanal = 1;
@@ -71,40 +80,33 @@ for r = 1: length(rhoCanal_vec)
     u_ref(~dirichlet) = K_II\b_I;
     
     %% Loesen des Systems mit FETI-DP fuer versch. VK
-    diffs = cell(length(VK_vec),1);
-    iters = cell(length(VK_vec),1);
-    kappa_ests = cell(length(VK_vec),1);
     
-    TOL_vec = 100;
-    for t = 1 : length(TOL_vec)
-        TOL = TOL_vec(t);
-        fig_VK_comp = figure("Name","Loesungen fuer verschiedene Vorkonditionierer");
-        tiledlayout('flow')
-        for vk_ind = 1:length(VK_vec)
-            VK = VK_vec{vk_ind};
+    TOL = 100;
+    fig_VK_comp = figure("Name","Loesungen fuer verschiedene Vorkonditionierer");
+    tiledlayout('flow')
+    VK = VK_vec{1};
         
-            [cu,u_FETIDP_glob,~,iters{vk_ind},kappa_ests{vk_ind}] = fetidp_constraint(TOL,vert__sd,tri__sd,l2g__sd,f,...
+    [cu,u_FETIDP_glob,~,iters{r},kappa_ests{r}] = fetidp_constraint(TOL,vert__sd,tri__sd,l2g__sd,f,...
                                                          dirichlet,VK,'adaptive',rhoTriSD,...
                                                          maxRhoVert,maxRhoVertSD,tol,x0,resid);
-            diffs{vk_ind} = norm(u_FETIDP_glob-u_ref);
+    diffs{r} = norm(u_FETIDP_glob-u_ref);
         
-            figure(fig_VK_comp)
-            nexttile
-            hold on
-            for sd = 1:length(tri__sd)
-                trisurf(tri__sd{sd},vert__sd{sd}(:,1),vert__sd{sd}(:,2),cu{sd});
-            end
-            xlabel("x"); ylabel("y"); zlabel("z");
-            title(sprintf("Finale Loesung: %s-VK",VK));
-            view(3)
-            hold off
-        end
-        
-        %% Ergebnistabelle
-        rowNames = ["Anzahl Iterationen","Konditionszahl","Abweichung von Referenzloesung"];
-        fprintf('RhoCanal: %g \n',rhoCanal)
-        fprintf('TOL zur Auswahl der EW: %g \n',TOL)
-        T_results = cell2table([iters';kappa_ests';diffs'],"RowNames",rowNames,"VariableNames",VK_vec);
-        disp(T_results)
+    figure(fig_VK_comp)
+    nexttile
+    hold on
+    for sd = 1:length(tri__sd)
+        trisurf(tri__sd{sd},vert__sd{sd}(:,1),vert__sd{sd}(:,2),cu{sd});
     end
+    xlabel("x"); ylabel("y"); zlabel("z");
+    title(sprintf("Finale Loesung: %s-VK",VK));
+    view(3)
+    hold off
 end
+        
+%% Ergebnistabelle
+rowNames = ["Anzahl Iterationen","Konditionszahl","Abweichung von Referenzloesung"];
+fprintf('Dirichlet-Vorkonditionierer \n')
+fprintf('TOL zur Auswahl der EW: %g \n',TOL)
+fprintf('Konditionszahl fuer unterschiedliche RhoCanal: \n')
+T_results = cell2table([iters';kappa_ests';diffs'],"RowNames",rowNames,"VariableNames",RhoCanal_vec);
+disp(T_results)

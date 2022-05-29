@@ -2,11 +2,9 @@ clear; clc;
 addpath('libs')
 
 %% Definiere Vorkonditionierer
-VK_vec = {'Dirichlet',...
-          'Deflation',...
+VK_vec = {'Deflation',...
+          'Dirichlet',...
           };
-
-TOL_vec = [1,5,10,50,100,500];
 
 %% Parameter fuer PCG
 x0 = @(dim) zeros(dim,1); % Startwert
@@ -74,10 +72,11 @@ kappa_ests = cell(length(VK_vec),1);
 
 fig_VK_comp = figure("Name","Loesungen fuer verschiedene Vorkonditionierer");
 tiledlayout('flow')
+TOL = 100;
 for vk_ind = 1:length(VK_vec)
     VK = VK_vec{vk_ind};
 
-    [cu,u_FETIDP_glob,~,iters{vk_ind},kappa_ests{vk_ind}] = fetidp_constraint(vert__sd,tri__sd,l2g__sd,f,...
+    [cu,u_FETIDP_glob,~,iters{vk_ind},kappa_ests{vk_ind}] = fetidp_constraint(TOL,vert__sd,tri__sd,l2g__sd,f,...
                                                  dirichlet,VK,'adaptive',rhoTriSD,...
                                                  maxRhoVert,maxRhoVertSD,tol,x0,resid);
     diffs{vk_ind} = norm(u_FETIDP_glob-u_ref);
