@@ -1,14 +1,11 @@
-function [x,residFinal,iter,kappa_est,alpha,beta,termCond] = preCG_termCond(A,invM,b,x0,tol,resid,VK,ploth,U,invUFU,d)
+function [x,iter,kappa_est,alpha,beta,termCond] = preCG_termCond(A,invM,b,x0,tol,resid,VK,ploth,U,invUFU,IminusP)
 
-r0 = b - A(x0);
-if ~strcmp('vorkonditioniert',resid) && strcmp('Deflation',VK)
-        r0 = r0+A(U*invUFU*U'*d); % TODO korrektur am Anfang
-end
+xk = x0;
+r0 = b - A(x0);%+A(U*invUFU*U'*d)-A(U*invUFU*U'*A(ones(size(U,1)))*x0);
 rk = r0;
 z0 = invM(rk);
 zk = z0;
 pk = zk;
-xk = x0;
 iter = 0;
 alpha_vec = zeros(1000,1);
 beta_vec = zeros(1000,1);
@@ -17,6 +14,8 @@ termCond_vec = zeros(1000,1);
 % Definiere Abbruchbedingung mit Residuum
 if strcmp('vorkonditioniert',resid)
     termCond = norm(zk)/norm(z0);
+elseif strcmp('Deflation',VK) && strcmp('nicht-vorkonditioniert,alternativ',resid)
+    termCond = norm(IminusP(rk))/norm(IminusP(r0));    
 else % nicht-vorkonditioniert
     termCond = norm(rk)/norm(r0);
 end
@@ -25,7 +24,7 @@ figure("Name","Loesungen waehrend der Iteration von PCG")
 while termCond > tol     
     if nargin > 5 && iter < 4
         if strcmp('Deflation',VK) && iter > 0
-            xBar = U*invUFU*U'*d;   % Korrektur bei Deflation-VK notwendig
+            xBar = U*invUFU*U'*b;   % Korrektur bei Deflation-VK notwendig
             ploth(xk+xBar,iter,VK);
         else
             ploth(xk,iter,VK);
@@ -49,8 +48,8 @@ while termCond > tol
     
     if strcmp('vorkonditioniert',resid)
         termCond = norm(zk)/norm(z0);
-    elseif strcmp('Deflation',VK)
-        termCond = norm(rk+A(U*invUFU*U'*d))/norm(r0);    
+    elseif strcmp('Deflation',VK) && strcmp('nicht-vorkonditioniert,alternativ',resid)
+        termCond = norm(IminusP(rk))/norm(IminusP(r0));
     else % nicht-vorkonditioniert
         termCond = norm(rk)/norm(r0);
     end
@@ -61,11 +60,6 @@ while termCond > tol
 end
 
 x = xk;
-if strcmp('vorkonditioniert',resid)
-    residFinal = zk;
-else % nicht-vorkonditioniert
-    residFinal = rk;
-end
 alpha = alpha_vec(1:iter);
 beta = beta_vec(1:iter);
 termCond = termCond_vec(1:iter);

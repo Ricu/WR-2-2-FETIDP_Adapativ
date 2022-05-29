@@ -13,7 +13,8 @@ x0 = @(dim) zeros(dim,1); % Startwert
 tol = 10^(-8); % Toleranz
 % Residuum fuer die Abbruchbedingung
 %resid = {'vorkonditioniert'}; 
-resid = {'nicht-vorkonditioniert'};
+%resid = {'nicht-vorkonditioniert'};
+resid = {'nicht-vorkonditioniert,alternativ'};
 
 %% Erstelle das Gitter
 n = 10; % 2*n^2 Elemente pro Teilgebiet
@@ -44,7 +45,7 @@ rhoNotCanal = 1;
 
 % Definiere Koeffizient auf den Elementen (und teilgebietsweise);
 % maximalen Koeffizienten pro Knoten (und teilgebietsweise)
-[rhoTri,rhoTriSD,indElementsCanal,maxRhoVert,maxRhoVertSD] = coefficient(xMin,xMax,yMin,yMax,rhoCanal,rhoNotCanal,vert,tri,numVert,numTri,numSD,logicalTri__sd);
+[rhoTri,rhoTriSD,indElementsCanal,maxRhoVert,maxRhoVertSD] = coefficient_1(xMin,xMax,yMin,yMax,rhoCanal,rhoNotCanal,vert,tri,numVert,numTri,numSD,logicalTri__sd);
 
 
 %% Plotten des Gitters mit Kanal
@@ -79,8 +80,9 @@ fig_VK_comp_termCond = figure("Name",sprintf("Verlauf des %s Residuums fuer vers
 tiledlayout('flow')
 for vk_ind = 1:length(VK_vec)
     VK = VK_vec{vk_ind};
-    [cu,u_FETIDP_glob,~,iters{vk_ind},kappa_ests{vk_ind},termCond{vk_ind}] = fetidp(vert__sd,tri__sd,l2g__sd,...
-                                    f,dirichlet,VK,rhoTriSD,maxRhoVert,maxRhoVertSD,tol,x0,resid);
+    [cu,u_FETIDP_glob,~,iters{vk_ind},kappa_ests{vk_ind},termCond{vk_ind}] = fetidp_defl_bal(vert__sd,tri__sd,l2g__sd,...
+                                                                             f,dirichlet,VK,rhoTriSD,maxRhoVert,maxRhoVertSD, ...
+                                                                             tol,x0,resid);
                                                  
     diffs{vk_ind} = norm(u_FETIDP_glob-u_ref);
 
@@ -106,9 +108,7 @@ for vk_ind = 1:length(VK_vec)
     end
     title(sprintf("%s Residuum: %s-VK",append(resid{1},"es"),VK));
     view(2)
-    hold off
-    
-    
+    hold off   
 end
 
 %% Ergebnistabelle
