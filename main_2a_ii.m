@@ -39,21 +39,11 @@ rhoMax_vec = 10^6;
 rhoMin = 1;
 rhoMax_sd = [2,3,14,17,24,25];
 
+% Plot-Auswahl
+plot_grid = true;
 % Definiere Koeffizient auf den Elementen (und teilgebietsweise);
 % maximalen Koeffizienten pro Knoten (und teilgebietsweise)
-[rhoTri,rhoTriSD,indElementsrhoMax,maxRhoVert,maxRhoVertSD] = coefficient_2ii(rhoMax_vec,rhoMin,rhoMax_sd,l2g__sd,tri,numVert,numTri,numSD,logicalTri__sd);
-
-
-%% Plotten des Gitters mit Kanal
-figure("Name","Triangulierung des Gebiets mit Koeffizientenfunktion");
-patch('vertices',vert,'faces',tri,'edgecol','k','facecol',[1,1,1]); hold on; axis equal tight;
-patch('vertices',vert,'faces',tri(indElementsrhoMax,:),'edgecol','k','facecol',[.8,.9,1]);
-for i = 1:N-1
-    line([0,1],[i/N,i/N],'LineWidth', 1, 'color', 'r')
-    line([i/N,i/N],[0,1],'LineWidth', 1, 'color', 'r')
-end
-legend('\rho = 1','\rho = 10^6','Interface','','','')
-title("Triangulierung mit Koeffizientenfunktion")
+[rhoTri,rhoTriSD,maxRhoVert,maxRhoVertSD] = coefficient_2ii(rhoMax_vec,rhoMin,rhoMax_sd,l2g__sd,tri,vert,numVert,numTri,numSD,logicalTri__sd,N,plot_grid);
 
 %% Aufstellen der Referenzloesung
 % Als Referenzloesung dient die Loesung des global assemblierten Sysmtems

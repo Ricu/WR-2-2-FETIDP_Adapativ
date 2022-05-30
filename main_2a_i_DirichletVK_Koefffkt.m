@@ -58,17 +58,6 @@ for r = 1: length(rhoCanal_vec)
     [rhoTri,rhoTriSD,indElementsCanal,maxRhoVert,maxRhoVertSD] = coefficient_1(xMin,xMax,yMin,yMax,rhoCanal,rhoNotCanal,vert,tri,numVert,numTri,numSD,logicalTri__sd);
     
     
-    %% Plotten des Gitters mit Kanal
-    figure("Name","Triangulierung des Gebiets mit Koeffizientenfunktion");
-    patch('vertices',vert,'faces',tri,'edgecol','k','facecol',[1,1,1]); hold on; axis equal tight;
-    patch('vertices',vert,'faces',tri(indElementsCanal,:),'edgecol','k','facecol',[.8,.9,1]);
-    for i = 1:N-1
-        line([0,1],[i/N,i/N],'LineWidth', 1, 'color', 'r')
-        line([i/N,i/N],[0,1],'LineWidth', 1, 'color', 'r')
-    end
-    legend('\rho = 1','\rho = 10^6','Interface','','','')
-    title("Triangulierung mit Koeffizientenfunktion")
-    
     %% Aufstellen der Referenzloesung
     % Als Referenzloesung dient die Loesung des global assemblierten Sysmtems
     % mit Backslash-Operator
