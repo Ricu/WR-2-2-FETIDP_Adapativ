@@ -1,10 +1,33 @@
-function [cu,u_FETIDP_glob,lambda,iter,kappa_est,topEW] = fetidp_constraint(TOL,vert__sd,tri__sd,l2g__sd,f,dirichlet,VK,constraint_type,rhoTriSD,maxRhoVert,maxRhoVertSD,tol,x0,resid)
+function [cu,u_FETIDP_glob,lambda,iter,kappa_est,termCond,topEW] = fetidp_constraint(grid_struct,f,pc_param,rho_struct,pcg_param)
+% pcg_param = struct('tol', tol, 'x0',x0, 'resid',resid);
+
+% rho_struct = struct('rhoTriSD',rhoTriSD,'maxRhoVert',maxRhoVert,'maxRhoVertSD',maxRhoVertSD);
+rhoTriSD        = rho_struct.rhoTriSD;
+maxRhoVert      = rho_struct.maxRhoVert;
+maxRhoVertSD    = rho_struct.maxRhoVertSD;
+
+% grid_struct = struct('vert__sd',vert__sd,'tri__sd',tri__sd,'l2g__sd',l2g__sd,'dirichlet',dirichlet);
+vert__sd = grid_struct.vert__sd;
+tri__sd  = grid_struct.tri__sd;
+l2g__sd  = grid_struct.l2g__sd;
+dirichlet = grid_struct.dirichlet;
+
+
+% pc_param = struct('VK',VK,'constraint_type',constraint_type,'adaptiveTOL',adaptiveTOL);
+VK              = pc_param.VK;
 % constraint types (constraint_type): 
 % 'none' (Vanilla FETIDP)
 % 'non-adaptive' (Aufgabe Teil 1), 
 % 'adaptive' (Aufgabe Teil 2)
 if ~(strcmp('Deflation',VK) || strcmp('Balancing',VK))
     constraint_type = 'none';
+else
+    constraint_type = pc_param.constraint_type;
+    if isfield(pc_param,'adaptiveTol')
+        adaptiveTOL = pc_param.adaptiveTol;
+    elseif strcmp('adaptive',constraint_type)
+       error("Error \nAdaptive Nebenbedigungen gewaehlt aber keine Toleranz angegeben") 
+    end
 end
 
 numSD = length(vert__sd);
@@ -338,7 +361,7 @@ if strcmp(constraint_type,'adaptive') || strcmp(constraint_type,'non-adaptive')
             %% Verallgmeinertes Eigenwertproblem loesen
             [eigenvalues, eigenvectors] = adaptiveEigenvalues(c, pi, P_D_e, S,sigma);
             
-            eigenvectors = eigenvectors(:,diag(eigenvalues) > TOL);
+            eigenvectors = eigenvectors(:,diag(eigenvalues) > adaptiveTOL);
 
             % Extrahiere u
             n_EV = size(eigenvectors,2);
@@ -358,7 +381,7 @@ if strcmp(constraint_type,'adaptive') || strcmp(constraint_type,'non-adaptive')
     P = @(x) U*invUFU*U'*F(cB_B,cK_BB,cK_PiB,S_PiPi,x);
     P_transpose = @(x) F(cB_B,cK_BB,cK_PiB,S_PiPi,U*invUFU*U'*x);
     IminusP = @(x) x-P(x);
-    IminusP_transpose = @(x) x-P_transpose(x);
+    IminusPtranspose = @(x) x-P_transpose(x);
 end
 
 %% PCG + Vorkonditionierer
@@ -370,7 +393,7 @@ else
     invM = @(x) dirVKfunction(numSD,cBskal_Delta,cK_DeltaDelta,cK_II,cK_DeltaI,x);
     if strcmp('Deflation',VK) || strcmp('Balancing',VK)
         % Deflation VK
-        invM = @(x) IminusP(invM(IminusP_transpose(x)));
+        invM = @(x) IminusP(invM(IminusPtranspose(x)));
         if strcmp('Balancing',VK)
             % Balancing VK
             invM = @(x) invM(x)+U*invUFU*U'*x;
@@ -384,14 +407,15 @@ ew = sort(ew,'descend');
 topEW = ew(1:min(length(ew),50));
 
 %% PCG
-x0Vec = x0(n_LM);
 ploth = @(lambda,iter,VK) plotiter(lambda,iter,VK,cB_B,cK_BB,cK_PiB,cb_B,cPrimalMap, ...
     l2g__sd,cPrimal,cIDual,S_PiPi,f_PiTilde,f_B,tri__sd,vert__sd);
 
 if strcmp(constraint_type,'adaptive') || strcmp(constraint_type,'non-adaptive')
-    [lambda,~,iter,kappa_est] = preCG(hF,invM,d,x0Vec,tol,resid,VK,ploth,U,invUFU,d);
+    constraint_struct = struct('U',U,'invUFU',invUFU,'IminusPtranspose',IminusPtranspose);
+    [lambda,iter,kappa_est,termCond] = preCG(hF,invM,d,pcg_param,VK,ploth,constraint_struct);
 else
-    [lambda,~,iter,kappa_est] = preCG(hF,invM,d,x0Vec,tol,resid,VK,ploth);
+    constraint_struct = struct('U',[],'invUFU',[],'IminusPtranspose',[]);
+    [lambda,iter,kappa_est,termCond] = preCG(hF,invM,d,pcg_param,VK,ploth,constraint_struct);
 end
 
 % Korrektur bei Deflation-VK notwendig
