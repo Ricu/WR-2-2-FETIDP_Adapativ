@@ -7,14 +7,18 @@ VK_vec = {'Identitaet',...
           'Deflation',...
           'Balancing'...
           };
+% VK_vec ={'Deflation'};
+
+constraint_type = 'non-adaptive';
       
 %% Initialisiere Parameter fuer PCG
 x0 = @(dim) zeros(dim,1); % Startvektor
 tol = 10^(-8); % Toleranz fuer die Abbruchbedingung
 % Residuum fuer die Abbruchbedingung
-%resid = {'vorkonditioniert'}; 
-%resid = {'nicht-vorkonditioniert'};
-resid = {'nicht-vorkonditioniert,alternativ'};
+resid = {'vorkonditioniert'}; 
+% resid = {'nicht-vorkonditioniert'};
+% resid = {'nicht-vorkonditioniert,alternativ'};
+pcg_param = struct('tol', tol, 'x0',x0, 'resid',resid);
 
 %% Erstelle das Gitter
 n = 10; % 2*n^2 Elemente pro Teilgebiet
@@ -48,6 +52,8 @@ plot_grid = true;
 % Definiere Koeffizient auf den Elementen (und teilgebietsweise);
 % maximalen Koeffizienten pro Knoten (und teilgebietsweise)
 [rhoTri,rhoTriSD,maxRhoVert,maxRhoVertSD] = coefficient_1(xMin,xMax,yMin,yMax,rhoCanal,rhoNotCanal,vert,tri,numVert,numTri,numSD,logicalTri__sd,N,plot_grid);
+rho_struct = struct('rhoTriSD',{rhoTriSD},'maxRhoVert',{maxRhoVert},'maxRhoVertSD',{maxRhoVertSD});
+grid_struct = struct('vert__sd',{vert__sd},'tri__sd',{tri__sd},'l2g__sd',{l2g__sd},'dirichlet',{dirichlet});
 
 %% Aufstellen der Referenzloesung
 % Als Referenzloesung dient die Loesung des global assemblierten Sysmtems
@@ -71,9 +77,8 @@ tiledlayout('flow')
 for vk_ind = 1:length(VK_vec) %Iteriere uber VK
     VK = VK_vec{vk_ind};
     % Loesen des Systems mit FETI-DP mit dem entsprechenden VK
-    [cu,u_FETIDP_glob,~,iters{vk_ind},kappa_ests{vk_ind},termCond{vk_ind}] = fetidp_defl_bal(vert__sd,tri__sd,l2g__sd,...
-                                                                             f,dirichlet,VK,rhoTriSD,maxRhoVert,maxRhoVertSD, ...
-                                                                             tol,x0,resid);
+    pc_param = struct('VK',VK,'constraint_type',constraint_type);
+    [cu,u_FETIDP_glob,~,iters{vk_ind},kappa_ests{vk_ind},termCond{vk_ind}] = fetidp_constraint(grid_struct,f,pc_param,rho_struct,pcg_param);
                                                  
     diffs{vk_ind} = norm(u_FETIDP_glob-u_ref); % Abweichung der Loesung von der Referenzloesung
     
@@ -92,13 +97,14 @@ for vk_ind = 1:length(VK_vec) %Iteriere uber VK
     % Plotten des Verlaufs des relativen Residuums der Abbruchbedingung von PCG
     figure(fig_VK_comp_termCond)
     nexttile
+    
+    semilogy(1:iters{vk_ind},termCond{vk_ind});
     hold on
-    plot(1:iters{vk_ind},termCond{vk_ind});
     xlabel("Iteration"); ylabel("Relatives Residuum");
-    if strcmp('vorkonditioniert',resid) && strcmp('Dirichlet',VK)
-        xlim([0,iters{vk_ind}])
-        ylim([0 termCond{vk_ind}(1)+0.1])
-    end
+%     if strcmp('vorkonditioniert',resid) && strcmp('Dirichlet',VK)
+%         xlim([0,iters{vk_ind}])
+%         ylim([0 termCond{vk_ind}(1)+0.1])
+%     end
     title(sprintf("%s Residuum: %s-VK",append(resid{1},"es"),VK));
     view(2)
     hold off   

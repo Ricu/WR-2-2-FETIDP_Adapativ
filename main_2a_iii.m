@@ -5,6 +5,7 @@ addpath('libs')
 VK_vec = {'Dirichlet',...
           'Deflation',...
           };
+constraint_type = 'adaptive';
 
 %% Parameter fuer PCG
 x0 = @(dim) zeros(dim,1); % Startwert
@@ -65,9 +66,12 @@ TOL = 100;
 for vk_ind = 1:length(VK_vec)
     VK = VK_vec{vk_ind};
 
-    [cu,u_FETIDP_glob,~,iters{vk_ind},kappa_ests{vk_ind}] = fetidp_constraint(TOL,vert__sd,tri__sd,l2g__sd,f,...
-                                                 dirichlet,VK,'adaptive',rhoTriSD,...
-                                                 maxRhoVert,maxRhoVertSD,tol,x0,resid);
+    rho_struct = struct('rhoTriSD',{rhoTriSD},'maxRhoVert',{maxRhoVert},'maxRhoVertSD',{maxRhoVertSD});
+    grid_struct = struct('vert__sd',{vert__sd},'tri__sd',{tri__sd},'l2g__sd',{l2g__sd},'dirichlet',{dirichlet});
+    pc_param = struct('VK',VK,'constraint_type',constraint_type,'adaptiveTol',TOL);
+    pcg_param = struct('tol', tol, 'x0',x0, 'resid',resid);
+
+    [cu,u_FETIDP_glob,~,iters{vk_ind},kappa_ests{vk_ind}] = fetidp_constraint(grid_struct,f,pc_param,rho_struct,pcg_param);
     diffs{vk_ind} = norm(u_FETIDP_glob-u_ref);
 
     figure(fig_VK_comp)
