@@ -1,4 +1,4 @@
-function [x,residFinal,iter,kappa_est,alpha,beta] = preCG(A,invM,b,x0,tol,resid,VK,ploth,U,invUFU,d)
+function [x,residFinal,iter,kappa_est,alpha,beta] = preCG_old(A,invM,b,x0,tol,resid,VK,ploth,U,invUFU,d)
 
 r0 = b - A(x0);
 rk = r0;

@@ -1,4 +1,4 @@
-function [x,iter,kappa_est,termCond] = preCG_termCond(A,invM,b,pcg_param,VK,ploth,constraint_struct)
+function [x,iter,kappa_est,termCond] = preCG(A,invM,b,pcg_param,VK,ploth,constraint_struct)
 % A:            Systemmatrix
 % invM:         Vorkonditionierer
 % b:            rechte Seite
