@@ -77,7 +77,7 @@ tiledlayout('flow')
 for vk_ind = 1:length(VK_vec) %Iteriere uber VK
     VK = VK_vec{vk_ind};
     % Loesen des Systems mit FETI-DP mit dem entsprechenden VK
-    pc_param = struct('VK',VK,'constraint_type',constraint_type,'adaptiveTOL',[]);
+    pc_param = struct('VK',VK,'constraint_type',constraint_type);
     [cu,u_FETIDP_glob,~,iters{vk_ind},kappa_ests{vk_ind},termCond{vk_ind}] = fetidp_constraint(grid_struct,f,pc_param,rho_struct,pcg_param);
                                                  
     diffs{vk_ind} = norm(u_FETIDP_glob-u_ref); % Abweichung der Loesung von der Referenzloesung
