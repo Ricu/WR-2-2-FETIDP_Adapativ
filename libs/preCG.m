@@ -6,9 +6,9 @@ function [x,iter,kappa_est,residual] = preCG(A,invM,b,pcg_param,VK,ploth,constra
 %               typ
 % 
 % 
-tol     = pcg_param.tol;
-x0      = pcg_param.x0(length(b));
-resid   = pcg_param.resid;
+tol          = pcg_param.tol;
+x0           = pcg_param.x0(length(b));
+resid_type   = pcg_param.resid;
 
 % constraint_struct = struct('U',U,'invUFU',invUFU,'IminusP',IminusP);
 correction_matrix = constraint_struct.U*constraint_struct.invUFU*constraint_struct.U';
@@ -26,9 +26,9 @@ beta_vec = zeros(1000,1);
 residual_vec = zeros(1000,1);
 
 % Definiere Abbruchbedingung mit Residuum
-if strcmp('vorkonditioniert',resid)
+if strcmp('vorkonditioniert',resid_type)
     residual = norm(zk)/norm(z0);
-elseif strcmp('Deflation',VK) && strcmp('nicht-vorkonditioniert,alternativ',resid)
+elseif strcmp('Deflation',VK) && strcmp('nicht-vorkonditioniert,alternativ',resid_type)
     residual = norm(IminusPtranspose(rk))/norm(IminusPtranspose(r0));    
 else % nicht-vorkonditioniert
     residual = norm(rk)/norm(r0);
@@ -60,9 +60,9 @@ while residual > tol
         residual_vec = [residual_vec ; zeros(1000,1)];
     end
     
-    if strcmp('vorkonditioniert',resid)
+    if strcmp('vorkonditioniert',resid_type)
         residual = norm(zk)/norm(z0);
-    elseif strcmp('Deflation',VK) && strcmp('nicht-vorkonditioniert,alternativ',resid)
+    elseif strcmp('Deflation',VK) && strcmp('nicht-vorkonditioniert,alternativ',resid_type)
         residual = norm(IminusPtranspose(rk))/norm(IminusPtranspose(r0));
     else % nicht-vorkonditioniert
         residual = norm(rk)/norm(r0);

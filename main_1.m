@@ -15,10 +15,10 @@ constraint_type = 'non-adaptive';
 x0 = @(dim) zeros(dim,1); % Startvektor
 tol = 10^(-8); % Toleranz fuer die Abbruchbedingung
 % Residuum fuer die Abbruchbedingung
-resid = {'vorkonditioniert'}; 
-% resid = {'nicht-vorkonditioniert'};
-% resid = {'nicht-vorkonditioniert,alternativ'};
-pcg_param = struct('tol', tol, 'x0',x0, 'resid',resid);
+resid_type = {'vorkonditioniert'}; 
+% resid_type = {'nicht-vorkonditioniert'};
+% resid_type = {'nicht-vorkonditioniert,alternativ'};
+pcg_param = struct('tol', tol, 'x0',x0, 'resid_type',resid_type);
 
 %% Erstelle das Gitter
 n = 10; % 2*n^2 Elemente pro Teilgebiet
@@ -72,7 +72,7 @@ kappa_ests = cell(length(VK_vec),1);
 termCond = cell(length(VK_vec),1);
 
 fig_VK_comp_solution = figure("Name","Loesungen fuer verschiedene Vorkonditionierer");
-fig_VK_comp_termCond = figure("Name",sprintf("Verlauf des %s Residuums fuer verschiedene Vorkonditionierer",append(resid{1},"en")));
+fig_VK_comp_termCond = figure("Name",sprintf("Verlauf des %s Residuums fuer verschiedene Vorkonditionierer",append(resid_type{1},"en")));
 tiledlayout('flow')
 for vk_ind = 1:length(VK_vec) %Iteriere uber VK
     VK = VK_vec{vk_ind};
@@ -105,7 +105,7 @@ for vk_ind = 1:length(VK_vec) %Iteriere uber VK
 %         xlim([0,iters{vk_ind}])
 %         ylim([0 termCond{vk_ind}(1)+0.1])
 %     end
-    title(sprintf("%s Residuum: %s-VK",append(resid{1},"es"),VK));
+    title(sprintf("%s Residuum: %s-VK",append(resid_type{1},"es"),VK));
     view(2)
     hold off   
 end
