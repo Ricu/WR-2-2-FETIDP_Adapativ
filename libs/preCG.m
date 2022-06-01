@@ -8,7 +8,7 @@ function [x,iter,kappa_est,residual] = preCG(A,invM,b,pcg_param,VK,ploth,constra
 % 
 tol          = pcg_param.tol;
 x0           = pcg_param.x0(length(b));
-resid_type   = pcg_param.resid;
+resid_type   = pcg_param.resid_type;
 
 % constraint_struct = struct('U',U,'invUFU',invUFU,'IminusP',IminusP);
 correction_matrix = constraint_struct.U*constraint_struct.invUFU*constraint_struct.U';
