@@ -51,13 +51,15 @@ end
 if plot == true
     %% Plotten des Gitters mit Kanal
     figure("Name","Triangulierung des Gebiets mit Koeffizientenfunktion");
-    patch('vertices',vert,'faces',tri,'edgecol','k','facecol',[1,1,1]); hold on; axis equal tight;
-    patch('vertices',vert,'faces',tri(indElementsCanal,:),'edgecol','k','facecol',[.8,.9,1]);
+    patch('vertices',vert,'faces',tri,'edgecol','k','facecol',[1,1,1],'edgecolor',"#3c3c3c"); 
+    hold on; axis equal tight;
+    patch('vertices',vert,'faces',tri(indElementsCanal,:),'edgecol','k','facecol',"#2b8cbe",'edgecolor',"#3c3c3c");
     for i = 1:N-1
-        line([0,1],[i/N,i/N],'LineWidth', 1, 'color', 'r')
-        line([i/N,i/N],[0,1],'LineWidth', 1, 'color', 'r')
+        line([0,1],[i/N,i/N],'LineWidth', 1.5, 'color', 'r')
+        line([i/N,i/N],[0,1],'LineWidth', 1.5, 'color', 'r')
     end
-    legend('\rho = 1','\rho = 10^6','Interface','','','')
+    rhoMax = sprintf('\\rho = %i',rhoCanal);
+    legend('\rho = 1',rhoMax,'Interface','','','')
     title("Triangulierung mit Koeffizientenfunktion")
 end
 
