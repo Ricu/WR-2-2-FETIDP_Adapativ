@@ -1,4 +1,4 @@
-function [x,iter,kappa_est,residual] = preCG(A,invM,b,pcg_param,VK,ploth,constraint_struct)
+function [x,iter,kappa_est,residual] = preCG(A,invM,b,pcg_param,VK,plot_struct,constraint_struct)
 % A:            Systemmatrix
 % invM:         Vorkonditionierer
 % b:            rechte Seite
@@ -36,12 +36,12 @@ end
 
 figure("Name","Loesungen waehrend der Iteration von PCG")
 while residual > tol     
-    if nargin > 5 && iter < 4
+    if plot_struct.plot_iteration && iter < 4
         if strcmp('Deflation',VK) && iter > 0
             xBar = correction_matrix*b;   % Korrektur bei Deflation-VK notwendig
-            ploth(xk+xBar,iter,VK);
+            plot_struct.ploth(xk+xBar,iter,VK);
         else
-            ploth(xk,iter,VK);
+            plot_struct.ploth(xk,iter,VK);
         end
     end
     ak = (rk'*zk) / (pk'*A(pk));
