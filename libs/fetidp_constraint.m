@@ -1,4 +1,4 @@
-function [cu,u_FETIDP_glob,lambda,iter,kappa_est,termCond,topEW] = fetidp_constraint(grid_struct,f,pc_param,rho_struct,pcg_param)
+function [cu,u_FETIDP_glob,lambda,iter,kappa_est,residual,topEW] = fetidp_constraint(grid_struct,f,pc_param,rho_struct,pcg_param)
 % pcg_param = struct('tol', tol, 'x0',x0, 'resid',resid);
 
 % rho_struct = struct('rhoTriSD',rhoTriSD,'maxRhoVert',maxRhoVert,'maxRhoVertSD',maxRhoVertSD);
@@ -26,7 +26,7 @@ else
     if isfield(pc_param,'adaptiveTol')
         adaptiveTOL = pc_param.adaptiveTol;
     elseif strcmp('adaptive',constraint_type)
-       error("Error \nAdaptive Nebenbedigungen gewaehlt aber keine Toleranz angegeben") 
+       error('Error: Adaptive Nebenbedigungen gewaehlt aber keine Toleranz angegeben') 
     end
 end
 
@@ -405,6 +405,13 @@ invMF = invM(hF(eye(n_LM)));
 ew = eig(invMF);
 ew = sort(ew,'descend');
 topEW = ew(1:min(length(ew),50));
+% Plot der 50 groessten EW
+if strcmp('Deflation',VK) || strcmp('Balancing',VK)
+    figure("Name","Die 50 groessten Eigenwerte von invM*F");
+    scatter(1:50,topEW)
+    set(gca,'Yscale','log')
+    title(sprintf("invM: %s-VK",VK));
+end
 
 %% PCG
 ploth = @(lambda,iter,VK) plotiter(lambda,iter,VK,cB_B,cK_BB,cK_PiB,cb_B,cPrimalMap, ...
@@ -412,11 +419,10 @@ ploth = @(lambda,iter,VK) plotiter(lambda,iter,VK,cB_B,cK_BB,cK_PiB,cb_B,cPrimal
 
 if strcmp(constraint_type,'adaptive') || strcmp(constraint_type,'non-adaptive')
     constraint_struct = struct('U',U,'invUFU',invUFU,'IminusPtranspose',IminusPtranspose);
-    [lambda,iter,kappa_est,termCond] = preCG(hF,invM,d,pcg_param,VK,ploth,constraint_struct);
 else
     constraint_struct = struct('U',[],'invUFU',[],'IminusPtranspose',[]);
-    [lambda,iter,kappa_est,termCond] = preCG(hF,invM,d,pcg_param,VK,ploth,constraint_struct);
 end
+[lambda,iter,kappa_est,residual] = preCG(hF,invM,d,pcg_param,VK,ploth,constraint_struct);
 
 % Korrektur bei Deflation-VK notwendig
 if strcmp('Deflation',VK)  % Deflation-VK M^-1_PP

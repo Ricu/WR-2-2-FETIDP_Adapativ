@@ -1,4 +1,4 @@
-function [x,iter,kappa_est,termCond] = preCG(A,invM,b,pcg_param,VK,ploth,constraint_struct)
+function [x,iter,kappa_est,residual] = preCG(A,invM,b,pcg_param,VK,ploth,constraint_struct)
 % A:            Systemmatrix
 % invM:         Vorkonditionierer
 % b:            rechte Seite
@@ -23,19 +23,19 @@ pk = zk;
 iter = 0;
 alpha_vec = zeros(1000,1);
 beta_vec = zeros(1000,1);
-termCond_vec = zeros(1000,1);
+residual_vec = zeros(1000,1);
 
 % Definiere Abbruchbedingung mit Residuum
 if strcmp('vorkonditioniert',resid)
-    termCond = norm(zk)/norm(z0);
+    residual = norm(zk)/norm(z0);
 elseif strcmp('Deflation',VK) && strcmp('nicht-vorkonditioniert,alternativ',resid)
-    termCond = norm(IminusPtranspose(rk))/norm(IminusPtranspose(r0));    
+    residual = norm(IminusPtranspose(rk))/norm(IminusPtranspose(r0));    
 else % nicht-vorkonditioniert
-    termCond = norm(rk)/norm(r0);
+    residual = norm(rk)/norm(r0);
 end
 
 figure("Name","Loesungen waehrend der Iteration von PCG")
-while termCond > tol     
+while residual > tol     
     if nargin > 5 && iter < 4
         if strcmp('Deflation',VK) && iter > 0
             xBar = correction_matrix*b;   % Korrektur bei Deflation-VK notwendig
@@ -57,26 +57,26 @@ while termCond > tol
     if iter > size(alpha_vec)
         alpha_vec = [alpha_vec ; zeros(1000,1)];
         beta_vec = [beta_vec ; zeros(1000,1)];
-        termCond_vec = [termCond_vec ; zeros(1000,1)];
+        residual_vec = [residual_vec ; zeros(1000,1)];
     end
     
     if strcmp('vorkonditioniert',resid)
-        termCond = norm(zk)/norm(z0);
+        residual = norm(zk)/norm(z0);
     elseif strcmp('Deflation',VK) && strcmp('nicht-vorkonditioniert,alternativ',resid)
-        termCond = norm(IminusPtranspose(rk))/norm(IminusPtranspose(r0));
+        residual = norm(IminusPtranspose(rk))/norm(IminusPtranspose(r0));
     else % nicht-vorkonditioniert
-        termCond = norm(rk)/norm(r0);
+        residual = norm(rk)/norm(r0);
     end
     
     alpha_vec(iter) = ak;
     beta_vec(iter) = bk;
-    termCond_vec(iter) = termCond;
+    residual_vec(iter) = residual;
 end
 
 x = xk;
 alpha = alpha_vec(1:iter);
 beta = beta_vec(1:iter);
-termCond = termCond_vec(1:iter);
+residual = residual_vec(1:iter);
 
 if nargout > 3
     temp1 = [sqrt(beta(1:end-1))./alpha(1:end-1); 0];
