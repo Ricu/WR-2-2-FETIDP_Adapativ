@@ -34,7 +34,10 @@ else % nicht-vorkonditioniert
     residual = norm(rk)/norm(r0);
 end
 
-figure("Name","Loesungen waehrend der Iteration von PCG")
+if plot_struct.plot_iteration
+    figure("Name","Loesungen waehrend der Iteration von PCG")
+end
+
 while residual > tol     
     if plot_struct.plot_iteration && iter < 4
         if strcmp('Deflation',VK) && iter > 0
