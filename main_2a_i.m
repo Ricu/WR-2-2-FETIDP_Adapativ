@@ -79,7 +79,7 @@ for r = 1: length(rhoCanal_vec)
             pc_param = struct('VK',VK,'constraint_type',constraint_type,'adaptiveTol',TOL);
             pcg_param = struct('tol', tol, 'x0',x0, 'resid_type',resid_type);
 
-            [cu,u_FETIDP_glob,~,iters{vk_ind},kappa_ests{vk_ind}] = fetidp_constraint(grid_struct,f,pc_param,rho_struct,pcg_param);
+            [cu,u_FETIDP_glob,~,iters{vk_ind},kappa_ests{vk_ind}] = fetidp_constraint(grid_struct,f,pc_param,rho_struct,pcg_param,false);
             diffs{vk_ind} = norm(u_FETIDP_glob-u_ref);
         
             figure(fig_VK_comp)
