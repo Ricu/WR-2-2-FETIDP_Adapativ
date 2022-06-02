@@ -373,7 +373,7 @@ if strcmp(constraint_type,'adaptive') || strcmp(constraint_type,'non-adaptive')
         end
         U = cell2mat(cU);
     end
-    
+    fprintf('Anzahl Nebenbedingungen = %i\n', size(U,2));
 
     %% Definiere Projektion P
     UFU = U'*hF(U);
