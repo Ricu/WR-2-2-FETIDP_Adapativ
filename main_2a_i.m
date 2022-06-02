@@ -1,5 +1,6 @@
 clear; clc;
 addpath('libs')
+plot_grid = 1;
 
 %% Definiere Vorkonditionierer
 VK_vec = {'Dirichlet',...
@@ -35,22 +36,22 @@ f = @(vert,y) ones(size(vert));   % Rechte Seite der DGL
 
 %% Definiere Kanal-Koeffizientenfunktion
 % Definiere Bereich des Kanals
-xMin=14/30; xMax=16/30;
-yMin=3/30;  yMax=27/30;
+xCanalLim = [14/30,16/30];
+yCanalLim  = [3/30,27/30];
 
 % Definiere rho im Kanal und sonst
 % rhoCanal zum Vergleich der rhoMin/rhoMax zur Konditionszahl
 
 rhoCanal_vec = 10^6;
 for r = 1: length(rhoCanal_vec)
-    rhoCanal = rhoCanal_vec(r);
-    rhoNotCanal = 1;
+    rhoMax = rhoCanal_vec(r);
+    rhoMin = 1;
 
     % Plot-Auswahl
     plot_grid = true;
     % Definiere Koeffizient auf den Elementen (und teilgebietsweise);
     % maximalen Koeffizienten pro Knoten (und teilgebietsweise)
-    [rhoTri,rhoTriSD,maxRhoVert,maxRhoVertSD] = coefficient_1(xMin,xMax,yMin,yMax,rhoCanal,rhoNotCanal,vert,tri,numVert,numTri,numSD,logicalTri__sd,N,plot_grid);
+    [rhoTri,rhoTriSD,maxRhoVert,maxRhoVertSD] = coefficient_1(xCanalLim,yCanalLim,rhoMax,rhoMin,vert,tri,logicalTri__sd,plot_grid);
 
     %% Aufstellen der Referenzloesung
     % Als Referenzloesung dient die Loesung des global assemblierten Sysmtems
@@ -97,7 +98,7 @@ for r = 1: length(rhoCanal_vec)
         
         %% Ergebnistabelle
         rowNames = ["Anzahl Iterationen","Konditionszahl","Abweichung von Referenzloesung"];
-        fprintf('RhoCanal: %g \n',rhoCanal)
+        fprintf('RhoCanal: %g \n',rhoMax)
         fprintf('TOL zur Auswahl der EW: %g \n',TOL)
         T_results = cell2table([iters';kappa_ests';diffs'],"RowNames",rowNames,"VariableNames",VK_vec);
         disp(T_results)

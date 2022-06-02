@@ -1,4 +1,4 @@
-function [rhoTri,rhoTriSD,maxRhoVert,maxRhoVertSD] = coefficient_2iii(rhoMax_vec,rhoMin,tri,vert,numVert,numTri,numSD,logicalTri__sd,N,plot)
+function [rhoTri,rhoTriSD,maxRhoVert,maxRhoVertSD] = coefficient_2iii(rhoMax,rhoMin,vert,tri,logicalTri__sd,random_percentage,random_state,plot)
 % Input: 
 % Input: 
 % Input: tri: Elementliste
@@ -9,14 +9,18 @@ function [rhoTri,rhoTriSD,maxRhoVert,maxRhoVertSD] = coefficient_2iii(rhoMax_vec
 % Output: indElementsrhoMax: Logischer Vektor, welche Elemente in rhoMax liegen
 % Output: maxRhoVert,maxRhoVertSD: maximaler Koeffizient pro Knoten (und teilgebietsweise)
 
+numSD = length(logicalTri__sd);
+N = sqrt(numSD);
+numTri = length(tri);
+numVert = length(vert);
+
 %% Definiere Koeffizientenfunktion auf den Elementen
 % Setze alle Koeffizienten der Elemente auf 'rhoMin'
 rhoTri = rhoMin*ones(numTri,1);
-for r = 1:length(rhoMax_vec)
-    rhoMax = rhoMax_vec(r);
-    % Setze nun alle 'rhoMax' Koeffizienten.
-    rhoTri(rand(length(rhoTri),1) < 0.25) = rhoMax;
-end
+
+% Setze nun alle 'rhoMax' Koeffizienten.
+rng(random_state) % Setze den random state/seed
+rhoTri(rand(length(rhoTri),1) < random_percentage) = rhoMax;
 indElementsrhoMax = (rhoTri == rhoMax); % Logischer Vektor, welche Elemente in rhoMax liegen
 
 %% Definiere Koeffizientenfunktion auf den Elementen eines TG
@@ -40,16 +44,18 @@ for i = 1:numVert % Iteriere ueber Knoten
     end
 end
 
-if plot == true
+if plot
     %% Plotten des Gitters mit Kanal
     figure("Name","Triangulierung des Gebiets mit Koeffizientenfunktion");
-    patch('vertices',vert,'faces',tri,'edgecol','k','facecol',[1,1,1]); hold on; axis equal tight;
-    patch('vertices',vert,'faces',tri(indElementsrhoMax,:),'edgecol','k','facecol',[.8,.9,1]);
+    patch('vertices',vert,'faces',tri,'facecol',[1,1,1],'edgecolor',"#5a5a5a"); 
+    hold on; axis equal tight;
+    patch('vertices',vert,'faces',tri(indElementsrhoMax,:),'facecol',"#2b8cbe",'edgecolor',"#5a5a5a");
     for i = 1:N-1
-        line([0,1],[i/N,i/N],'LineWidth', 1, 'color', 'r')
-        line([i/N,i/N],[0,1],'LineWidth', 1, 'color', 'r')
+        line([0,1],[i/N,i/N],'LineWidth', 1.5, 'color', 'r')
+        line([i/N,i/N],[0,1],'LineWidth', 1.5, 'color', 'r')
     end
-    legend('\rho = 1','\rho = 10^6','Interface','','','')
+    rhoMax = sprintf('\\rho = %.0e',rhoMax);
+    legend('\rho = 1',rhoMax,'Interface','','','')
     title("Triangulierung mit Koeffizientenfunktion")
 end
 

@@ -1,5 +1,6 @@
 clear; clc;
 addpath('libs')
+plot_grid = true;
 
 %% Definiere Vorkonditionierer
 VK_vec = {'Dirichlet',...
@@ -36,16 +37,15 @@ f = @(vert,y) ones(size(vert));   % Rechte Seite der DGL
 %% Definiere Koeffizientenfunktion
 % Definiere maximale unbd minimale Koeffizientenfunktion
 % rhoMax zum Vergleich der rhoMin/rhoMax zur Konditionszahl
-%rhoMax_vec = [1,10,10^2,10^3,10^4,10^5,10^6,10^7,10^8];
-rhoMax_vec = 10^6;
+rhoMax = 10^6;
 rhoMin = 1;
-rhoMax_sd = [2,3,14,17,24,25];
+affectedSubdomains = [2,3,14,17,24,25];
 
 % Plot-Auswahl
 plot_grid = true;
 % Definiere Koeffizient auf den Elementen (und teilgebietsweise);
 % maximalen Koeffizienten pro Knoten (und teilgebietsweise)
-[rhoTri,rhoTriSD,maxRhoVert,maxRhoVertSD] = coefficient_2ii(rhoMax_vec,rhoMin,rhoMax_sd,l2g__sd,tri,vert,numVert,numTri,numSD,logicalTri__sd,N,plot_grid);
+[rhoTri,rhoTriSD,maxRhoVert,maxRhoVertSD] = coefficient_2ii(rhoMax,rhoMin,affectedSubdomains,vert,tri,logicalTri__sd,plot_grid);
 
 %% Aufstellen der Referenzloesung
 % Als Referenzloesung dient die Loesung des global assemblierten Sysmtems
