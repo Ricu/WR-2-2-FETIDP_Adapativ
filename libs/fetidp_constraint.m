@@ -43,7 +43,7 @@ end
 numSD = length(vert__sd);       % Anzahl Teilgebiete
 numVert = length(dirichlet);    % Anzahl Knoten Global
 
-%% Partition der Knoten in primale, duale und Interfaceknoten
+%% Partition der Knoten in Interfaceknoten und in primale und duale Knoten 
 % Zaehle Anzahl Teilgebiete, in denen Knoten enthalten ist 
 multiplicity = zeros(numVert,1);
 for i = 1:numSD
@@ -53,7 +53,7 @@ gamma = (multiplicity > 1) & ~dirichlet;    % Extrahiere Interfaceknoten
 primal = (multiplicity == 4) & ~dirichlet;  % Extrahiere primale Knoten
 dual = gamma & ~primal;                     % Extrahiere duale Knoten
 
-%% Partition der Knotengruppen auf die Teilgebiete
+%% Partition der Knotengruppen teilgebietsweise
 cDirichlet = cell(numSD,1); 
 cInner = cell(numSD,1);     
 cGamma = cell(numSD,1);     
@@ -70,7 +70,7 @@ for i = 1:numSD
 end
 
 %% Mappings 
-% Mapping: Global -> Gamma
+% Mapping: Global -> Interface
 mapGamma = zeros(numVert,1);
 mapGamma(gamma)=1:nnz(gamma);
 
@@ -82,7 +82,9 @@ mapPrimal(primal)=1:nnz(primal);
 mapDual = zeros(numVert,1);
 mapDual(dual)=1:nnz(dual);
 
-% Mapping: Interface lokal -> Interface global
+% Mappings: Interface lokal -> Interface global
+%           Primal lokal -> Primal global
+%           Dual lokal -> Dual global
 cGammaMap = cell(numSD,1);
 cPrimalMap = cell(numSD,1);
 cDualMap = cell(numSD,1);
@@ -92,18 +94,19 @@ for i = 1:numSD
     cDualMap{i} = mapDual((l2g__sd{i}(cDual{i})));          
 end
 
-%% Lagrange Multiplikatoren
+%% Lagrange Multiplikatoren Info
 cLM = cell(sum(dual),1);
 for i = 1:numSD
     i_ind = find(cDual{i}); % Lokale Knotennummern der dualen Knoten des TG
     for j = 1:length(i_ind)
-        s=cDualMap{i}(j);   % Lagrangescher-Multipikator
-        cLM{s}=[cLM{s},[i;i_ind(j)]]; % Enthaelt TG-Nummer und lokale Knotennummer
+        s=cDualMap{i}(j);   % Lagrangescher-Multipikator (duale globale Knotennummer)
+        cLM{s}=[cLM{s},[i;i_ind(j)]]; % Enthaelt TG-Nummer und lokale Knotennummer des LM
     end
 end
 
-%% B^(i) initialisieren: mit und ohne Skalierung
-n_LM = sum(multiplicity(dual) - 1);
+%% Lokale Sprungoperatoren: mit und ohne Skalierung
+% Initialisierung
+n_LM = sum(multiplicity(dual)-1);   % Anzahl Lagrangescher Multiplikatoren
 cB = cell(1,numSD);
 cBskal=cell(1,numSD);
 for i = 1:numSD
@@ -111,43 +114,41 @@ for i = 1:numSD
     cBskal{i}=sparse(n_LM,length(vert__sd{i}));
 end
 
-%% Sprungoperator aufstellen: ohne Skalierung
-row_ind_LM = 1;
-for i = 1:length(cLM)
-    cB{cLM{i}(1,1)}(row_ind_LM,cLM{i}(2,1)) = 1;
-    for j = 2:size(cLM{i},2)
+% Sprungoperator ohne Skalierung
+row_ind_LM = 1; % Jede Zeile von cB repraesentiert einen LM
+for i = 1:length(cLM)   % Iteriere ueber LM
+    % Erstes zugehoeriges TG des LM
+    cB{cLM{i}(1,1)}(row_ind_LM,cLM{i}(2,1)) = 1;   % cLM{i}(1,.) TG-Nummer, cLM{i}(2,.) lokale Knotennummer    
+    for j = 2:size(cLM{i},2)    % Iteriere ueber restliche zugehoerige TG des LM
         cB{cLM{i}(1,j)}(row_ind_LM,cLM{i}(2,j)) = -1;
         row_ind_LM = row_ind_LM + 1;
     end
 end
 
-%% Sprungoperator aufstellen: mit Skalierung
+% Sprungoperator mit Skalierung
 row_ind_LM = 1;
-for i = 1:length(cLM) % Iteriere ueber duale Knoten
+for i = 1:length(cLM) % Iteriere ueber LM
     globNum = l2g__sd{cLM{i}(1,1)}(cLM{i}(2,1));    % Globale Knotennummer des dualen Knotens
-    sumMaxRhoDual = sum(maxRhoVertSD{globNum}); % Summer ueber maximale Koeffizienten der TG zu diesem Knoten
+    sumMaxRhoDual = sum(maxRhoVertSD{globNum}); % Summer ueber maximale Koeffizienten der zugehoerigen TG zu diesem Knoten
     % Verwende zur Skalierung jeweils den Koeffizienten des anderen TG
     cBskal{cLM{i}(1,1)}(row_ind_LM,cLM{i}(2,1)) = (maxRhoVertSD{globNum}(2)/sumMaxRhoDual)*cB{cLM{i}(1,1)}(row_ind_LM,cLM{i}(2,1));
     cBskal{cLM{i}(1,2)}(row_ind_LM,cLM{i}(2,2)) = (maxRhoVertSD{globNum}(1)/sumMaxRhoDual)*cB{cLM{i}(1,2)}(row_ind_LM,cLM{i}(2,2));
     row_ind_LM = row_ind_LM + 1;
 end
 
-%% Assembliere die Steifigkeitsmatrix und den Lastvektor
+%% Assembliere die lokalen Steifigkeitsmatrizen und die lokalen Lastvektoren
 cK = cell(numSD,1); % Steifigkeitsmatrizen
-cb = cell(numSD,1); % Rechte Seiten
-
+cb = cell(numSD,1); % Lastvektoren
 for i = 1:numSD
     [cK{i},~,cb{i}] = assemble(tri__sd{i}, vert__sd{i},1,f,rhoTriSD{i});
 end
 
-%% Assembliere globales K in primalen Variablen
+%% Assembliere globale Steifigkeitsmatrix in primalen Variablen
 K_PiPiTilde = sparse(sum(primal),sum(primal));
 f_PiTilde = sparse(sum(primal),1);
-
 for i = 1:numSD
-    piInd = mapPrimal(l2g__sd{i}(cPrimal{i}));
-    K_PiPiTilde(piInd,piInd) = K_PiPiTilde(piInd,piInd) + cK{i}(cPrimal{i},cPrimal{i});
-    f_PiTilde(piInd) = f_PiTilde(piInd) + cb{i}(cPrimal{i});
+    K_PiPiTilde(cPrimalMap{i},cPrimalMap{i}) = K_PiPiTilde(cPrimalMap{i},cPrimalMap{i}) + cK{i}(cPrimal{i},cPrimal{i});
+    f_PiTilde(cPrimalMap{i}) = f_PiTilde(cPrimalMap{i}) + cb{i}(cPrimal{i});
 end
 
 %% Extrahiere Matrizen
@@ -159,7 +160,6 @@ cK_II=cell(numSD,1);
 cK_DeltaI=cell(numSD,1);
 cb_B = cell(numSD,1);
 cK_PiB = cell(numSD,1);
-
 for i = 1:numSD
     cBskal_Delta{i}=cBskal{i}(:,cDual{i});
     cB_B{i} = cB{i}(:,cIDual{i});
@@ -182,7 +182,7 @@ end
 %% Erstelle function handle auf Systemmatrix F
 hF = @(lambda) F(cB_B,cK_BB,cK_PiB,S_PiPi,lambda);
 
-%% Berechne d
+%% Berechne rechte Seite d
 f_B = cell2mat(cb_B);
 cb_B_trans = cellfun(@transpose,cb_B,'UniformOutput', false);
 d = apply_1(cB_B,cK_BB,cb_B_trans,1);
@@ -250,10 +250,10 @@ if strcmp(constraint_type,'adaptive') || strcmp(constraint_type,'non-adaptive')
     if strcmp(constraint_type,'non-adaptive')
         U = zeros(n_LM,numEdges);
         for edgeID = 1:numEdges % Iteriere ueber Kanten
-            cnt=1;
-            for j = edgesDual{edgeID}'    % Iteriere ueber duale Knoten der Kante (DUALE Knotennummern)
-                U(j,edgeID) = maxRhoVert(edgesDualGlobal{edgeID}(cnt));
-                cnt = cnt+1;
+            cnt = 1;    
+            for j = edgesDual{edgeID}'    % Iteriere ueber duale Knoten der Kante (j = DUALE Knotennummern)
+                U(j,edgeID) = maxRhoVert(edgesDualGlobal{edgeID}(cnt)); % Maximaler Koeffizient des dualen Knotens
+                cnt = cnt+1;    % Iteriere ueber Anzahl dualer Knoten der Kante
             end
         end
     end
@@ -387,7 +387,7 @@ if strcmp(constraint_type,'adaptive') || strcmp(constraint_type,'non-adaptive')
     end
     fprintf('Anzahl Nebenbedingungen = %i\n', size(U,2));
 
-    %% Definiere Projektion P
+    %% Definiere Projektion P (und weitere nuetzliche function handles)
     UFU = U'*hF(U);
     invUFU = UFU\eye(size(UFU));
     P = @(x) U*invUFU*U'*F(cB_B,cK_BB,cK_PiB,S_PiPi,x);
@@ -396,7 +396,7 @@ if strcmp(constraint_type,'adaptive') || strcmp(constraint_type,'non-adaptive')
     IminusPtranspose = @(x) x-P_transpose(x);
 end
 
-%% PCG + Vorkonditionierer
+%% Aufstellen des Vorkonditionierers
 if strcmp('Identitaet',VK)
     % Identitaet VK
     invM  = @(x) x;
@@ -426,26 +426,27 @@ preconditioned_system = invM(hF(eye(n_LM)));
 % end
 
 %% PCG
-
+% Plotfunktion zum Plotten der Loesungen
 ploth = @(lambda,iter,VK) plotiter(lambda,iter,VK,cB_B,cK_BB,cK_PiB,cb_B,cPrimalMap, ...
-    l2g__sd,cPrimal,cIDual,S_PiPi,f_PiTilde,f_B,tri__sd,vert__sd);
+                                   l2g__sd,cPrimal,cIDual,S_PiPi,f_PiTilde,f_B,tri__sd,vert__sd);
 plot_struct = struct("plot_iteration",plot_iteration,"ploth",ploth);
 
-
+% Definiere constraint-Komponenten
 if strcmp(constraint_type,'adaptive') || strcmp(constraint_type,'non-adaptive')
     constraint_struct = struct('U',U,'invUFU',invUFU,'IminusPtranspose',IminusPtranspose);
 else
     constraint_struct = struct('U',[],'invUFU',[],'IminusPtranspose',[]);
 end
+
+% Loesen des Sytems mit PCG
 [lambda,iter,kappa_est,residual] = preCG(hF,invM,d,pcg_param,VK,plot_struct,constraint_struct);
 
-% Korrektur bei Deflation-VK notwendig
-if strcmp('Deflation',VK)  % Deflation-VK M^-1_PP
-    lambdaBar = U*invUFU*U'*d;
-    lambda = lambdaBar+lambda;
+% Korrektur der Loesung lambda bei Deflation-VK notwendig
+if strcmp('Deflation',VK)  
+    lambda = lambda+U*invUFU*U'*d;
 end
 
-%% Extrahiere Loesung u
+%% Extrahiere finale Loesung u
 [cu,u_FETIDP_glob] = extract_u(lambda,cB_B,cK_BB,cK_PiB,cb_B,cPrimalMap,...
     l2g__sd,cPrimal,cIDual,S_PiPi,f_PiTilde,f_B);
 
@@ -454,7 +455,7 @@ end
 
 %% Plot und Extraktionsfunktionen
 function [cu,u_glob] = extract_u(lambda,cB_B,cK_BB,cK_PiB,cb_B,cPrimalMap,...
-    l2g__sd,cPrimal,cIDual,S_PiPi,f_PiTilde,f_B)
+                                 l2g__sd,cPrimal,cIDual,S_PiPi,f_PiTilde,f_B)
 numSD = length(cB_B);
 cb_B_trans = cellfun(@transpose,cb_B,'UniformOutput', false);
 % u_pi_tilde
@@ -484,9 +485,9 @@ end
 end
 
 function [cu,u_FETIDP_glob] = plotiter(lambda,iter,VK,cB_B,cK_BB,cK_PiB,cb_B,cPrimalMap,...
-    l2g__sd,cPrimal,cIDual,S_PiPi,f_PiTilde,f_B,tri__sd,vert__sd)
-[cu,u_FETIDP_glob] = extract_u(lambda,cB_B,cK_BB,cK_PiB,cb_B,...
-    cPrimalMap, l2g__sd,cPrimal,cIDual,S_PiPi,f_PiTilde,f_B);
+                                        l2g__sd,cPrimal,cIDual,S_PiPi,f_PiTilde,f_B,tri__sd,vert__sd)
+[cu,u_FETIDP_glob] = extract_u(lambda,cB_B,cK_BB,cK_PiB,cb_B,cPrimalMap, ...
+                                l2g__sd,cPrimal,cIDual,S_PiPi,f_PiTilde,f_B);
 subplot(2,2,iter+1)
 hold on
 for i = 1:length(tri__sd)

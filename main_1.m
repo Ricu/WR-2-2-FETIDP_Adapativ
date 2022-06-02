@@ -43,19 +43,19 @@ dirichlet = or(ismember(vert(:,1),xyLim), ismember(vert(:,2),xyLim));
 
 %% Definiere Kanal-Koeffizientenfunktion
 % Definiere Bereich des Kanals
-xMin=14/30; xMax=16/30;
-yMin=3/30;  yMax=27/30;
+xCanalLim = [14/30,16/30];
+yCanalLim  = [3/30,27/30];
 
 % Definiere rho im Kanal und außerhalb des Kanals
-rhoCanal = 10^6;
-rhoNotCanal = 1;
+rhoMax = 10^6;
+rhoMin = 1;
 
 % Definiere Koeffizient auf den Elementen (und teilgebietsweise);
 % Maximalen Koeffizienten pro Knoten (und teilgebietsweise)
-plot_grid = true;   % Auswahl: Plotten der Triangulierung mit Kanal-Koeffizientenfunktion
-[rhoTri,rhoTriSD,maxRhoVert,maxRhoVertSD] = coefficient_1(xMin,xMax,yMin,yMax,rhoCanal, ...
-                                                          rhoNotCanal,vert,tri,numVert,numTri, ...
-                                                          numSD,logicalTri__sd,N,plot_grid);
+plot = true;   % Auswahl: Plotten der Triangulierung mit Kanal-Koeffizientenfunktion
+[rhoTri,rhoTriSD,maxRhoVert,maxRhoVertSD] = coefficient_1(xCanalLim,yCanalLim,rhoMax, ...
+                                                           rhoMin,vert,tri,logicalTri__sd,plot);
+                                                      
 % Structure fuer rho-Variablen
 rho_struct = struct('rhoTriSD',{rhoTriSD},'maxRhoVert',{maxRhoVert},'maxRhoVertSD',{maxRhoVertSD}); 
 % Structure fuer grid-Variablen
