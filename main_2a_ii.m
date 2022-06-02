@@ -2,8 +2,9 @@ clear; clc;
 addpath('libs')
 
 %% Definiere Vorkonditionierer
-VK_vec = {'Deflation',...
-          'Dirichlet',...
+VK_vec = {'Dirichlet',...
+          'Deflation',...
+          'Balancing',...
           };
 constraint_type = 'adaptive';
 
@@ -63,7 +64,7 @@ kappa_ests = cell(length(VK_vec),1);
 
 fig_VK_comp = figure("Name","Loesungen fuer verschiedene Vorkonditionierer");
 tiledlayout('flow')
-TOL = 1;
+TOL = 100;
 for vk_ind = 1:length(VK_vec)
     VK = VK_vec{vk_ind};
 

@@ -4,6 +4,7 @@ addpath('libs')
 %% Definiere Vorkonditionierer
 VK_vec = {'Dirichlet',...
           'Deflation',...
+          'Balancing',...
           };
 constraint_type = 'adaptive';
 
@@ -41,9 +42,10 @@ rhoMin = 1;
 
 % Plot-Auswahl
 plot_grid = true;
+random_grid = 0.25;
 % Definiere Koeffizient auf den Elementen (und teilgebietsweise);
 % maximalen Koeffizienten pro Knoten (und teilgebietsweise)
-[rhoTri,rhoTriSD,maxRhoVert,maxRhoVertSD] = coefficient_2iii(rhoMax_vec,rhoMin,tri,vert,numVert,numTri,numSD,logicalTri__sd,N,plot_grid);
+[rhoTri,rhoTriSD,maxRhoVert,maxRhoVertSD] = coefficient_2iii(rhoMax_vec,rhoMin,random_grid,tri,vert,numVert,numTri,numSD,logicalTri__sd,N,plot_grid);
 
 %% Aufstellen der Referenzloesung
 % Als Referenzloesung dient die Loesung des global assemblierten Sysmtems
