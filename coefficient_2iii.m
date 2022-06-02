@@ -30,13 +30,7 @@ maxRhoVert = zeros(numVert,1);
 vertTris = cell(numVert,1); 
 maxRhoVertSD = cell(numVert,1);
 for i = 1:numVert % Iteriere ueber Knoten
-    cnt = 1;
-    for j = 1:numTri % Iteriere ueber Dreiecke  
-        if ismember(i,tri(j,:)) % Pruefe, ob Knoten im Dreieck liegt
-            vertTris{i}(cnt) = j;   % Enthaelt fuer jeden Knoten die Dreiecke in denen er liegt
-            cnt = cnt+1;
-        end
-    end
+    [vertTris{i},~,~] = find(i == tri);
     maxRhoVert(i) = max(rhoTri(vertTris{i})); % maximaler Koeffizient pro Knoten
     
     %% Definiere maximalen Koeffizienten pro Knoten teilgebietsweise
