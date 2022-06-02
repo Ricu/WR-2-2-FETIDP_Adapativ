@@ -1,24 +1,34 @@
 function [cu,u_FETIDP_glob,lambda,iter,kappa_est,residual,preconditioned_system] = fetidp_constraint(grid_struct,f,pc_param,rho_struct,pcg_param,plot_iteration)
-% pcg_param = struct('tol', tol, 'x0',x0, 'resid',resid);
+% Input: grid_struct: Structure mit allen Gitterkomponenten:
+%        Komponenten: vert__sd,tri__sd,l2g__sd,dirichlet
+% Input: f: Function handle fuer rechte Seite der DGL
+% Input: pc_param: Structure mit allen Vorkonditionierer
+%        Komponenten: VK, constraint_type, adaptiveTOL 
+%        constraint types: 'none','non-adaptive','adaptive'
+% Input: rho_struct: Structure mit allen Koeffizientenkomponenten
+%        Komponenten: rhoTriSD, maxRhoVert, maxRhoVertSD
+% Input: pcg_param: Structure mit allen PCG-Parametern
+% Input: plot_iteration: Boolean, ob Loesungen in den Iterationen von PCG geplottet werden
 
-% rho_struct = struct('rhoTriSD',rhoTriSD,'maxRhoVert',maxRhoVert,'maxRhoVertSD',maxRhoVertSD);
-rhoTriSD        = rho_struct.rhoTriSD;
-maxRhoVert      = rho_struct.maxRhoVert;
-maxRhoVertSD    = rho_struct.maxRhoVertSD;
+% Output: cu: Cell-Array mit Loesungen auf den Teilgebieten
+% Output: u_FETIDP_glob: Globaler Loesungsvektor
+% Output: lambda: Loesungsvektor auf den LM
+% Output: iter: Anzahl Iterationen aus PCG
+% Output: kappa_est: Konditionszahlschaetzung aus PCG
+% Output: residual: Residuum aus PCG
+% Output: preconditioned_system: Explizit aufgestellte Matrix M^(-1)F
 
-% grid_struct = struct('vert__sd',vert__sd,'tri__sd',tri__sd,'l2g__sd',l2g__sd,'dirichlet',dirichlet);
+%% Structures entpacken
+rhoTriSD = rho_struct.rhoTriSD;
+maxRhoVert = rho_struct.maxRhoVert;
+maxRhoVertSD = rho_struct.maxRhoVertSD;
+
 vert__sd = grid_struct.vert__sd;
 tri__sd  = grid_struct.tri__sd;
 l2g__sd  = grid_struct.l2g__sd;
 dirichlet = grid_struct.dirichlet;
 
-
-% pc_param = struct('VK',VK,'constraint_type',constraint_type,'adaptiveTOL',adaptiveTOL);
-VK              = pc_param.VK;
-% constraint types (constraint_type): 
-% 'none' (Vanilla FETIDP)
-% 'non-adaptive' (Aufgabe Teil 1), 
-% 'adaptive' (Aufgabe Teil 2)
+VK = pc_param.VK;
 if ~(strcmp('Deflation',VK) || strcmp('Balancing',VK))
     constraint_type = 'none';
 else
@@ -30,26 +40,26 @@ else
     end
 end
 
-numSD = length(vert__sd);
-numVert = length(dirichlet);
+numSD = length(vert__sd);       % Anzahl Teilgebiete
+numVert = length(dirichlet);    % Anzahl Knoten Global
 
-%% Create logical vectors
-cDirichlet = cell(numSD,1); % Dirichlet Knoten
-cInner = cell(numSD,1);     % Innere Knoten Lokal
-cGamma = cell(numSD,1);     % Interface Knoten Lokal
-cDual = cell(numSD,1);      % Duale Knoten Lokal
-cPrimal = cell(numSD,1);    % Primale Knoten Lokal
-cIDual = cell(numSD,1);     % Innere und Duale Knoten Lokal
-
+%% Partition der Knoten in primale, duale und Interfaceknoten
+% Zaehle Anzahl Teilgebiete, in denen Knoten enthalten ist 
 multiplicity = zeros(numVert,1);
 for i = 1:numSD
-    multiplicity(l2g__sd{i}) = multiplicity(l2g__sd{i}) + 1; % zaehle Vorkommnisse
+    multiplicity(l2g__sd{i}) = multiplicity(l2g__sd{i}) + 1;
 end
-gamma = (multiplicity > 1) & ~dirichlet; % extrahiere Interfaceknoten
-primal = (multiplicity == 4) & ~dirichlet; % extrahiere primale Knoten
-dual = gamma & ~primal; % extrahiere duale Knoten
+gamma = (multiplicity > 1) & ~dirichlet;    % Extrahiere Interfaceknoten
+primal = (multiplicity == 4) & ~dirichlet;  % Extrahiere primale Knoten
+dual = gamma & ~primal;                     % Extrahiere duale Knoten
 
-%% Ordne lokale logische Vektoren zu
+%% Partition der Knotengruppen auf die Teilgebiete
+cDirichlet = cell(numSD,1); 
+cInner = cell(numSD,1);     
+cGamma = cell(numSD,1);     
+cDual = cell(numSD,1);      
+cPrimal = cell(numSD,1);    
+cIDual = cell(numSD,1);
 for i = 1:numSD
     cDirichlet{i} = dirichlet(l2g__sd{i});      % Dirichletknoten pro TG
     cGamma{i} = gamma(l2g__sd{i});              % Interfaceknoten pro TG
@@ -59,33 +69,35 @@ for i = 1:numSD
     cIDual{i} = cInner{i} | cDual{i};           % Innere+Duale Knoten pro TG
 end
 
-%% FETI DP start
-
-%% Lokales Interface -> globale Nummerierung
-cGammaMap = cell(numSD,1);
+%% Mappings 
+% Mapping: Global -> Gamma
 mapGamma = zeros(numVert,1);
 mapGamma(gamma)=1:nnz(gamma);
 
-cPrimalMap = cell(numSD,1);
+% Mapping: Global -> Primal
 mapPrimal = zeros(numVert,1);
 mapPrimal(primal)=1:nnz(primal);
 
-cDualMap = cell(numSD,1);
+% Mapping: Global -> Dual
 mapDual = zeros(numVert,1);
 mapDual(dual)=1:nnz(dual);
 
+% Mapping: Interface lokal -> Interface global
+cGammaMap = cell(numSD,1);
+cPrimalMap = cell(numSD,1);
+cDualMap = cell(numSD,1);
 for i = 1:numSD
-    cGammaMap{i} = mapGamma((l2g__sd{i}(cGamma{i})));       % Interfaceknoten: lokal zu global
-    cPrimalMap{i} = mapPrimal((l2g__sd{i}(cPrimal{i})));    % Interfaceknoten: lokal zu global
-    cDualMap{i} = mapDual((l2g__sd{i}(cDual{i})));          % Interfaceknoten: lokal zu global
+    cGammaMap{i} = mapGamma((l2g__sd{i}(cGamma{i})));       
+    cPrimalMap{i} = mapPrimal((l2g__sd{i}(cPrimal{i})));    
+    cDualMap{i} = mapDual((l2g__sd{i}(cDual{i})));          
 end
 
-%% Lagrange Multiplikatoren info
+%% Lagrange Multiplikatoren
 cLM = cell(sum(dual),1);
 for i = 1:numSD
-    i_ind = find(cDual{i});
+    i_ind = find(cDual{i}); % Lokale Knotennummern der dualen Knoten des TG
     for j = 1:length(i_ind)
-        s=cDualMap{i}(j);
+        s=cDualMap{i}(j);   % Lagrangescher-Multipikator
         cLM{s}=[cLM{s},[i;i_ind(j)]]; % Enthaelt TG-Nummer und lokale Knotennummer
     end
 end
