@@ -16,9 +16,9 @@ x0 = @(dim) zeros(dim,1);    % Startvektor
 tol = 10^(-8);               % Toleranz fuer die Abbruchbedingung
 
 % Residuum fuer die Abbruchbedingung
-resid_type = {'vorkonditioniert'}; 
+% resid_type = {'vorkonditioniert'}; 
 % resid_type = {'nicht-vorkonditioniert'};
-% resid_type = {'nicht-vorkonditioniert,alternativ'}; % Alternative fuer Deflation
+resid_type = {'nicht-vorkonditioniert,alternativ'}; % Alternative fuer Deflation
 
 pcg_param = struct('tol', tol, 'x0',x0, 'resid_type',resid_type); % Structure fuer PCG-Parameter
 
@@ -85,7 +85,7 @@ for vk_ind = 1:length(VK_vec) %Iteriere ueber VK
     VK = VK_vec{vk_ind};
     % Loesen des Systems mit FETI-DP mit entsprechendem VK
     pc_param = struct('VK',VK,'constraint_type',constraint_type);
-    [cu,u_FETIDP_glob,~,iters{vk_ind},kappa_ests{vk_ind},residuals{vk_ind}] = fetidp_constraint(grid_struct,f,pc_param,rho_struct,pcg_param);
+    [cu,u_FETIDP_glob,~,iters{vk_ind},kappa_ests{vk_ind},residuals{vk_ind}] = fetidp_constraint(grid_struct,f,pc_param,rho_struct,pcg_param,true);
     
     % Abweichung der Loesung von der Referenzloesung
     diffs{vk_ind} = norm(u_FETIDP_glob-u_ref);
