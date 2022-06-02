@@ -2,7 +2,6 @@ clear; clc;
 addpath('libs')
 plot_sol = 0;
 plot_grid = 1;
-part2only = 1;
 
 %% Parameter fuer PCG
 x0 = @(dim) zeros(dim,1);   % Startwert
