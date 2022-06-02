@@ -11,8 +11,8 @@ constraint_type = 'adaptive';
 x0 = @(dim) zeros(dim,1); % Startwert
 tol = 10^(-7); % Toleranz
 % Residuum fuer die Abbruchbedingung
-resid = {'vorkonditioniert'}; 
-%resid = {'nicht-vorkonditioniert'};
+resid_type = {'vorkonditioniert'}; 
+% resid_type = {'nicht-vorkonditioniert'};
 
 %% Erstelle das Gitter
 n = 10; % 2*n^2 Elemente pro Teilgebiet
@@ -77,7 +77,7 @@ for r = 1: length(rhoCanal_vec)
             rho_struct = struct('rhoTriSD',{rhoTriSD},'maxRhoVert',{maxRhoVert},'maxRhoVertSD',{maxRhoVertSD});
             grid_struct = struct('vert__sd',{vert__sd},'tri__sd',{tri__sd},'l2g__sd',{l2g__sd},'dirichlet',{dirichlet});
             pc_param = struct('VK',VK,'constraint_type',constraint_type,'adaptiveTol',TOL);
-            pcg_param = struct('tol', tol, 'x0',x0, 'resid',resid);
+            pcg_param = struct('tol', tol, 'x0',x0, 'resid_type',resid_type);
 
             [cu,u_FETIDP_glob,~,iters{vk_ind},kappa_ests{vk_ind}] = fetidp_constraint(grid_struct,f,pc_param,rho_struct,pcg_param);
             diffs{vk_ind} = norm(u_FETIDP_glob-u_ref);

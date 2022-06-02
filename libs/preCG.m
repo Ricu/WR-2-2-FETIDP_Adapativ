@@ -1,4 +1,4 @@
-function [x,iter,kappa_est,termCond] = preCG(A,invM,b,pcg_param,VK,ploth,constraint_struct)
+function [x,iter,kappa_est,residual] = preCG(A,invM,b,pcg_param,VK,plot_struct,constraint_struct)
 % A:            Systemmatrix
 % invM:         Vorkonditionierer
 % b:            rechte Seite
@@ -6,9 +6,9 @@ function [x,iter,kappa_est,termCond] = preCG(A,invM,b,pcg_param,VK,ploth,constra
 %               typ
 % 
 % 
-tol     = pcg_param.tol;
-x0      = pcg_param.x0(length(b));
-resid   = pcg_param.resid;
+tol          = pcg_param.tol;
+x0           = pcg_param.x0(length(b));
+resid_type   = pcg_param.resid_type;
 
 % constraint_struct = struct('U',U,'invUFU',invUFU,'IminusP',IminusP);
 correction_matrix = constraint_struct.U*constraint_struct.invUFU*constraint_struct.U';
@@ -23,25 +23,28 @@ pk = zk;
 iter = 0;
 alpha_vec = zeros(1000,1);
 beta_vec = zeros(1000,1);
-termCond_vec = zeros(1000,1);
+residual_vec = zeros(1000,1);
 
 % Definiere Abbruchbedingung mit Residuum
-if strcmp('vorkonditioniert',resid)
-    termCond = norm(zk)/norm(z0);
-elseif strcmp('Deflation',VK) && strcmp('nicht-vorkonditioniert,alternativ',resid)
-    termCond = norm(IminusPtranspose(rk))/norm(IminusPtranspose(r0));    
+if strcmp('vorkonditioniert',resid_type)
+    residual = norm(zk)/norm(z0);
+elseif strcmp('Deflation',VK) && strcmp('nicht-vorkonditioniert,alternativ',resid_type)
+    residual = norm(IminusPtranspose(rk))/norm(IminusPtranspose(r0));    
 else % nicht-vorkonditioniert
-    termCond = norm(rk)/norm(r0);
+    residual = norm(rk)/norm(r0);
 end
 
-figure("Name","Loesungen waehrend der Iteration von PCG")
-while termCond > tol     
-    if nargin > 5 && iter < 4
+if plot_struct.plot_iteration
+    figure("Name","Loesungen waehrend der Iteration von PCG")
+end
+
+while residual > tol     
+    if plot_struct.plot_iteration && iter < 4
         if strcmp('Deflation',VK) && iter > 0
             xBar = correction_matrix*b;   % Korrektur bei Deflation-VK notwendig
-            ploth(xk+xBar,iter,VK);
+            plot_struct.ploth(xk+xBar,iter,VK);
         else
-            ploth(xk,iter,VK);
+            plot_struct.ploth(xk,iter,VK);
         end
     end
     ak = (rk'*zk) / (pk'*A(pk));
@@ -57,26 +60,26 @@ while termCond > tol
     if iter > size(alpha_vec)
         alpha_vec = [alpha_vec ; zeros(1000,1)];
         beta_vec = [beta_vec ; zeros(1000,1)];
-        termCond_vec = [termCond_vec ; zeros(1000,1)];
+        residual_vec = [residual_vec ; zeros(1000,1)];
     end
     
-    if strcmp('vorkonditioniert',resid)
-        termCond = norm(zk)/norm(z0);
-    elseif strcmp('Deflation',VK) && strcmp('nicht-vorkonditioniert,alternativ',resid)
-        termCond = norm(IminusPtranspose(rk))/norm(IminusPtranspose(r0));
+    if strcmp('vorkonditioniert',resid_type)
+        residual = norm(zk)/norm(z0);
+    elseif strcmp('Deflation',VK) && strcmp('nicht-vorkonditioniert,alternativ',resid_type)
+        residual = norm(IminusPtranspose(rk))/norm(IminusPtranspose(r0));
     else % nicht-vorkonditioniert
-        termCond = norm(rk)/norm(r0);
+        residual = norm(rk)/norm(r0);
     end
     
     alpha_vec(iter) = ak;
     beta_vec(iter) = bk;
-    termCond_vec(iter) = termCond;
+    residual_vec(iter) = residual;
 end
 
 x = xk;
 alpha = alpha_vec(1:iter);
 beta = beta_vec(1:iter);
-termCond = termCond_vec(1:iter);
+residual = residual_vec(1:iter);
 
 if nargout > 3
     temp1 = [sqrt(beta(1:end-1))./alpha(1:end-1); 0];
