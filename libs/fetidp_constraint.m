@@ -3,7 +3,7 @@ function [cu,u_FETIDP_glob,lambda,iter,kappa_est,residual,preconditioned_system]
 %        Komponenten: vert__sd,tri__sd,l2g__sd,dirichlet
 % Input: f: Function handle fuer rechte Seite der DGL
 % Input: pc_param: Structure mit allen Vorkonditionierer
-%        Komponenten: VK, constraint_type, adaptiveTOL 
+%        Komponenten: VK, constraint_type, adaptiveTOL
 %        constraint types: 'none','non-adaptive','adaptive'
 % Input: rho_struct: Structure mit allen Koeffizientenkomponenten
 %        Komponenten: rhoTriSD, maxRhoVert, maxRhoVertSD
@@ -36,15 +36,15 @@ else
     if isfield(pc_param,'adaptiveTol')
         adaptiveTOL = pc_param.adaptiveTol;
     elseif strcmp('adaptive',constraint_type)
-       error('Error: Adaptive Nebenbedigungen gewaehlt aber keine Toleranz angegeben') 
+        error('Error: Adaptive Nebenbedigungen gewaehlt aber keine Toleranz angegeben')
     end
 end
 
 numSD = length(vert__sd);       % Anzahl Teilgebiete
 numVert = length(dirichlet);    % Anzahl Knoten Global
 
-%% Partition der Knoten in Interfaceknoten und in primale und duale Knoten 
-% Zaehle Anzahl Teilgebiete, in denen Knoten enthalten ist 
+%% Partition der Knoten in Interfaceknoten und in primale und duale Knoten
+% Zaehle Anzahl Teilgebiete, in denen Knoten enthalten ist
 multiplicity = zeros(numVert,1);
 for i = 1:numSD
     multiplicity(l2g__sd{i}) = multiplicity(l2g__sd{i}) + 1;
@@ -54,11 +54,11 @@ primal = (multiplicity == 4) & ~dirichlet;  % Extrahiere primale Knoten
 dual = gamma & ~primal;                     % Extrahiere duale Knoten
 
 %% Partition der Knotengruppen teilgebietsweise
-cDirichlet = cell(numSD,1); 
-cInner = cell(numSD,1);     
-cGamma = cell(numSD,1);     
-cDual = cell(numSD,1);      
-cPrimal = cell(numSD,1);    
+cDirichlet = cell(numSD,1);
+cInner = cell(numSD,1);
+cGamma = cell(numSD,1);
+cDual = cell(numSD,1);
+cPrimal = cell(numSD,1);
 cIDual = cell(numSD,1);
 for i = 1:numSD
     cDirichlet{i} = dirichlet(l2g__sd{i});      % Dirichletknoten pro TG
@@ -69,7 +69,7 @@ for i = 1:numSD
     cIDual{i} = cInner{i} | cDual{i};           % Innere+Duale Knoten pro TG
 end
 
-%% Mappings 
+%% Mappings
 % Mapping: Global -> Interface
 mapGamma = zeros(numVert,1);
 mapGamma(gamma)=1:nnz(gamma);
@@ -89,9 +89,9 @@ cGammaMap = cell(numSD,1);
 cPrimalMap = cell(numSD,1);
 cDualMap = cell(numSD,1);
 for i = 1:numSD
-    cGammaMap{i} = mapGamma((l2g__sd{i}(cGamma{i})));       
-    cPrimalMap{i} = mapPrimal((l2g__sd{i}(cPrimal{i})));    
-    cDualMap{i} = mapDual((l2g__sd{i}(cDual{i})));          
+    cGammaMap{i} = mapGamma((l2g__sd{i}(cGamma{i})));
+    cPrimalMap{i} = mapPrimal((l2g__sd{i}(cPrimal{i})));
+    cDualMap{i} = mapDual((l2g__sd{i}(cDual{i})));
 end
 
 %% Lagrange Multiplikatoren Info
@@ -118,7 +118,7 @@ end
 row_ind_LM = 1; % Jede Zeile von cB repraesentiert einen LM
 for i = 1:length(cLM)   % Iteriere ueber LM
     % Erstes zugehoeriges TG des LM
-    cB{cLM{i}(1,1)}(row_ind_LM,cLM{i}(2,1)) = 1;   % cLM{i}(1,.) TG-Nummer, cLM{i}(2,.) lokale Knotennummer    
+    cB{cLM{i}(1,1)}(row_ind_LM,cLM{i}(2,1)) = 1;   % cLM{i}(1,.) TG-Nummer, cLM{i}(2,.) lokale Knotennummer
     for j = 2:size(cLM{i},2)    % Iteriere ueber restliche zugehoerige TG des LM
         cB{cLM{i}(1,j)}(row_ind_LM,cLM{i}(2,j)) = -1;
         row_ind_LM = row_ind_LM + 1;
@@ -199,32 +199,23 @@ if strcmp(constraint_type,'adaptive') || strcmp(constraint_type,'non-adaptive')
     end
     edgesSD = unique(cEdgesSD{1},'rows'); % Enthaelt die beiden angrenzenden Teilgebietsnummern pro TG-Kante
     numEdges = size(edgesSD,1);
-    
+
     edgesDualGlobalAll = cell(size(edgesSD));
     edgesDual = cell(numEdges,1);
     edgesDualGlobal = cell(numEdges,1);
-    
-    edgesGammaGlobalAll = cell(size(edgesSD));
-    edgesGammaGlobal = cell(numEdges,1);
-    edgesGamma = cell(numEdges,1);
-    
+
     edgesPrimalGlobalAll = cell(size(edgesSD));
     edgesPrimalGlobal = cell(numEdges,1);
-    edgesPrimal = cell(numEdges,1);
-    
+
     for i = 1:numEdges % Iteriere ueber TG-Kanten
         for j = 1:size(edgesSD,2) % Iteriere ueber angrenzende TG
             SD = edgesSD(i,j);
             edgesDualGlobalAll{i,j} = l2g__sd{SD}(cDual{SD});   % Enthaelt fuer jedes angrenzende TG die dualen Knoten (GLOBALE Knotennummern)
-            edgesGammaGlobalAll{i,j} = l2g__sd{SD}(cGamma{SD});
             edgesPrimalGlobalAll{i,j} =  l2g__sd{SD}(cPrimal{SD});
         end
-        edgesGammaGlobal{i} = intersect(edgesGammaGlobalAll{i,1},edgesGammaGlobalAll{i,2});
-        edgesGamma{i} = mapGamma(edgesGammaGlobal{i});
         edgesDualGlobal{i} = intersect(edgesDualGlobalAll{i,1},edgesDualGlobalAll{i,2}); % Enthaelt fuer die TG-Kanten die dualen Knoten (GLOBALE Knotennummern)
         edgesDual{i} = mapDual(edgesDualGlobal{i}); % Enthaelt fuer die TG-Kanten die dualen Knoten (DUALE Knotennummern)
         edgesPrimalGlobal{i} = intersect(edgesPrimalGlobalAll{i,1},edgesPrimalGlobalAll{i,2});
-        edgesPrimal{i} = mapPrimal(edgesPrimalGlobal{i});
     end
     % Umkehrabbildung
     g2l__sd = cell(numSD,1);
@@ -233,16 +224,12 @@ if strcmp(constraint_type,'adaptive') || strcmp(constraint_type,'non-adaptive')
         ind = l2g__sd{sd};
         g2l__sd{sd}(ind) = 1:length(l2g__sd{sd});
     end
-    
+
     cLocalPrimal = cell(size(edgesSD));
-    cLocalDual = cell(size(edgesSD));
-    cLocalGamma = cell(size(edgesSD));
     for i = 1:numEdges
         for j = 1:2
             sd = edgesSD(i,j);
             cLocalPrimal{i,j} = g2l__sd{sd}(edgesPrimalGlobal{i});
-            cLocalDual{i,j} = g2l__sd{sd}(edgesDualGlobal{i});
-            cLocalGamma{i,j} = g2l__sd{sd}(edgesGammaGlobal{i});
         end
     end
 
@@ -250,7 +237,7 @@ if strcmp(constraint_type,'adaptive') || strcmp(constraint_type,'non-adaptive')
     if strcmp(constraint_type,'non-adaptive')
         U = zeros(n_LM,numEdges);
         for edgeID = 1:numEdges % Iteriere ueber Kanten
-            cnt = 1;    
+            cnt = 1;
             for j = edgesDual{edgeID}'    % Iteriere ueber duale Knoten der Kante (j = DUALE Knotennummern)
                 U(j,edgeID) = maxRhoVert(edgesDualGlobal{edgeID}(cnt)); % Maximaler Koeffizient des dualen Knotens
                 cnt = cnt+1;    % Iteriere ueber Anzahl dualer Knoten der Kante
@@ -299,7 +286,7 @@ if strcmp(constraint_type,'adaptive') || strcmp(constraint_type,'non-adaptive')
                 % aktuellen Teilgebiet, welche zum Interface gehoeren aber kein
                 % primaler Knoten auf der betrachteten Kante ist. Die primalen
                 % Knoten auf der Kante sind lediglich Nullspalten welche vorne
-                % angefügt werden.
+                % angefuegt werden.
                 relevantGamma = setdiff(find(cGamma{sd}),cLocalPrimal{edgeID,k});
                 B_e{k}(:,nPrimal+1:end) = cB{sd}(:,relevantGamma);
                 B_D_e{k}(:,nPrimal+1:end) = cBskal{sd}(:,relevantGamma);
@@ -315,23 +302,12 @@ if strcmp(constraint_type,'adaptive') || strcmp(constraint_type,'non-adaptive')
             P_D_e = B_D_e'*B_e;
 
             %% S
-            % Option 1: erst die Schurkomplemente normal Teilgebietsweise
-            % berechenen (siehe oben) und anschliessend umsortieren
-            %     S_e = cell(2,1);
-            %     for k = 1:2
-            %         sd = edgesSD(edgeID,k);
-            %         S
-            %     end
-            %     S_alternativ = blkdiag(S_e{:})
-
-            % Option 2: die Schurkomplemente von Anfang an umsortiert berechenen
             S_e = cell(2,1);
             for k = 1:2
                 sd = edgesSD(edgeID,k);
                 inner_local = cInner{sd};
                 relevantPrimal = cLocalPrimal{edgeID,k};
                 relevantGamma = setdiff(find(cGamma{sd}),relevantPrimal);
-
 
                 S = cell(2,2);
 
@@ -372,7 +348,7 @@ if strcmp(constraint_type,'adaptive') || strcmp(constraint_type,'non-adaptive')
 
             %% Verallgmeinertes Eigenwertproblem loesen
             [eigenvalues, eigenvectors] = adaptiveEigenvalues(c, pi, P_D_e, S,sigma);
-            
+
             eigenvectors = eigenvectors(:,diag(eigenvalues) > adaptiveTOL);
 
             % Extrahiere u
@@ -385,7 +361,8 @@ if strcmp(constraint_type,'adaptive') || strcmp(constraint_type,'non-adaptive')
         end
         U = cell2mat(cU);
     end
-    fprintf('Anzahl Nebenbedingungen = %i\n', size(U,2));
+    fprintf('Anzahl Nebenbedingungen = %i, Spaltenrang = %i\n', size(U,2),rank(U,1e-16));
+    fprintf('Anzahl Zeilen von U/Anzahl LM= %i\n',size(U,1) );
 
     %% Definiere Projektion P (und weitere nuetzliche function handles)
     UFU = U'*hF(U);
@@ -414,21 +391,11 @@ else
 end
 
 preconditioned_system = invM(hF(eye(n_LM)));
-% ew = eig(preconditioned_system);
-% ew = sort(ew,'descend');
-% topEW = ew(1:min(length(ew),50));
-% % Plot der 50 groessten EW
-% if strcmp('Deflation',VK) || strcmp('Balancing',VK)
-%     figure("Name","Die 50 groessten Eigenwerte von invM*F");
-%     scatter(1:50,topEW)
-%     set(gca,'Yscale','log')
-%     title(sprintf("invM: %s-VK",VK));
-% end
 
 %% PCG
 % Plotfunktion zum Plotten der Loesungen
 ploth = @(lambda,iter,VK) plotiter(lambda,iter,VK,cB_B,cK_BB,cK_PiB,cb_B,cPrimalMap, ...
-                                   l2g__sd,cPrimal,cIDual,S_PiPi,f_PiTilde,f_B,tri__sd,vert__sd);
+    l2g__sd,cPrimal,cIDual,S_PiPi,f_PiTilde,f_B,tri__sd,vert__sd);
 plot_struct = struct("plot_iteration",plot_iteration,"ploth",ploth);
 
 % Definiere constraint-Komponenten
@@ -442,7 +409,7 @@ end
 [lambda,iter,kappa_est,residual] = preCG(hF,invM,d,pcg_param,VK,plot_struct,constraint_struct);
 
 % Korrektur der Loesung lambda bei Deflation-VK notwendig
-if strcmp('Deflation',VK)  
+if strcmp('Deflation',VK)
     lambda = lambda+U*invUFU*U'*d;
 end
 
@@ -455,7 +422,7 @@ end
 
 %% Plot und Extraktionsfunktionen
 function [cu,u_glob] = extract_u(lambda,cB_B,cK_BB,cK_PiB,cb_B,cPrimalMap,...
-                                 l2g__sd,cPrimal,cIDual,S_PiPi,f_PiTilde,f_B)
+    l2g__sd,cPrimal,cIDual,S_PiPi,f_PiTilde,f_B)
 numSD = length(cB_B);
 cb_B_trans = cellfun(@transpose,cb_B,'UniformOutput', false);
 % u_pi_tilde
@@ -485,9 +452,9 @@ end
 end
 
 function [cu,u_FETIDP_glob] = plotiter(lambda,iter,VK,cB_B,cK_BB,cK_PiB,cb_B,cPrimalMap,...
-                                        l2g__sd,cPrimal,cIDual,S_PiPi,f_PiTilde,f_B,tri__sd,vert__sd)
+    l2g__sd,cPrimal,cIDual,S_PiPi,f_PiTilde,f_B,tri__sd,vert__sd)
 [cu,u_FETIDP_glob] = extract_u(lambda,cB_B,cK_BB,cK_PiB,cb_B,cPrimalMap, ...
-                                l2g__sd,cPrimal,cIDual,S_PiPi,f_PiTilde,f_B);
+    l2g__sd,cPrimal,cIDual,S_PiPi,f_PiTilde,f_B);
 subplot(2,2,iter+1)
 hold on
 for i = 1:length(tri__sd)
@@ -553,7 +520,7 @@ A =  pi * P_D' * S * P_D * pi;
 Btilde = pi * S * pi + sigma*(eye(size(pi))-pi);
 if norm(S*c) < 10^(-8)
     pibar = eye(length(c)) - c*c';
-    B = pibar * Btilde * pibar + sigma*(eye(size(pibar))-pibar); 
+    B = pibar * Btilde * pibar + sigma*(eye(size(pibar))-pibar);
 else
     B = Btilde;
 end
