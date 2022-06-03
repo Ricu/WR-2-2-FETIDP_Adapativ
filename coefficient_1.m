@@ -1,9 +1,9 @@
 function [rhoTri,rhoTriSD,maxRhoVert,maxRhoVertSD] = coefficient_1(xCanalLim,yCanalLim,rhoMax,rhoMin,vert,tri,logicalTri__sd,plot)
-% Input: xMin,xMax,yMin,yMax: Grenzen des Kanalgebiets in x- und y-Richtung
-% Input: rhoCanal,rhoNotCanal: rho im Kanal und außerhalb des Kanals
+% Input: xCanalLim,yCanalLim: Grenzen des Kanalgebiets in x- und y-Richtung
+% Input: rhoMax,rhoMin: rho im Kanal und außerhalb des Kanals
 % Input: vert,tri: Knoten- und Elementliste
-% Input: numVert,numTri,numSD: Anzahl Knoten, Elemente, Teilgebiete
 % Input: logicalTri__sd: Logischer Vektor, welche Dreiecke in welchem TG enthalten sind
+% Input: plot: Boolean, ob das Gitter mit Kanal geplottet werden soll
 
 % Output: rhoTri,rhoTriSD: Koeffizient pro Element (und teilgebietsweise)
 % Output: indElementsCanal: Logischer Vektor, welche Elemente im Kanal liegen
