@@ -6,7 +6,7 @@ part2only = 1;
 
 %% Parameter fuer PCG
 x0 = @(dim) zeros(dim,1);   % Startwert
-tol = 10^(-7);              % Toleranz
+tol = 10^(-8);              % Toleranz
 % Residuum fuer die Abbruchbedingung
 resid_type = {'vorkonditioniert'}; 
 

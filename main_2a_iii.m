@@ -1,5 +1,6 @@
 clear; clc;
 addpath('libs')
+plot_grid = 0;
 
 %% Definiere Vorkonditionierer
 VK_vec = {'Identitaet',...
@@ -11,7 +12,7 @@ constraint_type = 'adaptive';
 
 %% Parameter fuer PCG
 x0 = @(dim) zeros(dim,1); % Startwert
-tol = 10^(-7); % Toleranz
+tol = 10^(-8); % Toleranz
 % Residuum fuer die Abbruchbedingung
 resid_type = {'vorkonditioniert'}; 
 % resid_type = {'nicht-vorkonditioniert'};
@@ -40,8 +41,8 @@ f = @(vert,y) ones(size(vert));   % Rechte Seite der DGL
 rhoMax = 10^6;
 rhoMin = 1;
 
-plot_grid = true;
-random_percentage = 0.4;
+
+random_percentage = 0.25;
 % Definiere Koeffizient auf den Elementen (und teilgebietsweise);
 % maximalen Koeffizienten pro Knoten (und teilgebietsweise)
 [rhoTri,rhoTriSD,maxRhoVert,maxRhoVertSD] = coefficient_2iii(rhoMax,rhoMin,vert,tri,logicalTri__sd,random_percentage,0,plot_grid);
@@ -89,4 +90,5 @@ end
 
 %% Ergebnistabelle
 rowNames = ["Anzahl Iterationen","Konditionszahl","Abweichung von Referenzloesung"];
-T_results = cell2table([iters';kappa_ests';diffs'],"RowNames",rowNames,"VariableNames",VK_vec)
+T_results = cell2table([iters';kappa_ests';diffs'],"RowNames",rowNames,"VariableNames",VK_vec);
+disp(T_results);

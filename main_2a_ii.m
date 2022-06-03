@@ -1,6 +1,6 @@
 clear; clc;
 addpath('libs')
-plot_grid = true;
+plot_grid = 0;
 
 %% Definiere Vorkonditionierer
 VK_vec = {'Dirichlet',...
@@ -11,7 +11,7 @@ constraint_type = 'adaptive';
 
 %% Parameter fuer PCG
 x0 = @(dim) zeros(dim,1); % Startwert
-tol = 10^(-7); % Toleranz
+tol = 10^(-8); % Toleranz
 % Residuum fuer die Abbruchbedingung
 resid_type = {'vorkonditioniert'}; 
 % resid_type = {'nicht-vorkonditioniert'};
@@ -41,8 +41,6 @@ rhoMax = 10^6;
 rhoMin = 1;
 affectedSubdomains = [2,3,14,17,24,25];
 
-% Plot-Auswahl
-plot_grid = true;
 % Definiere Koeffizient auf den Elementen (und teilgebietsweise);
 % maximalen Koeffizienten pro Knoten (und teilgebietsweise)
 [rhoTri,rhoTriSD,maxRhoVert,maxRhoVertSD] = coefficient_2ii(rhoMax,rhoMin,affectedSubdomains,vert,tri,logicalTri__sd,plot_grid);
@@ -90,4 +88,5 @@ end
 
 %% Ergebnistabelle
 rowNames = ["Anzahl Iterationen","Konditionszahl","Abweichung von Referenzloesung"];
-T_results = cell2table([iters';kappa_ests';diffs'],"RowNames",rowNames,"VariableNames",VK_vec)
+T_results = cell2table([iters';kappa_ests';diffs'],"RowNames",rowNames,"VariableNames",VK_vec);
+disp(T_results);

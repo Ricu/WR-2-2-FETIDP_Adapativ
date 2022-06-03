@@ -94,4 +94,3 @@ fprintf('RhoCanal: %g \n',rhoMax)
 fprintf('TOL zur Auswahl der EW: %g \n',TOL)
 T_results = cell2table([iters';kappa_ests';diffs'],"RowNames",rowNames,"VariableNames",VK_vec);
 disp(T_results)
-
