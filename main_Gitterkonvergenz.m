@@ -38,12 +38,12 @@ xyLim = [0,1];          % Gebiet: Einheitsquadrat
 
 %% Definiere Kanal-Koeffizientenfunktion
 % Definiere Bereich des Kanals
-xMin=14/30; xMax=16/30;
-yMin=3/30;  yMax=27/30;
+xCanalLim = [14/30,16/30];
+yCanalLim  = [3/30,27/30];
 
 % Definiere rho im Kanal und außerhalb des Kanals
-rhoCanal = 10^6;
-rhoNotCanal = 1;
+rhoMax = 10^6;
+rhoMin = 1;
 
 color = {'blue','red'};
 
@@ -71,9 +71,8 @@ for constraint_type_ind = 1:length(constraint_type_vec)
         % Definiere Koeffizient auf den Elementen (und teilgebietsweise);
         % Maximalen Koeffizienten pro Knoten (und teilgebietsweise)
         plot_grid = false;   % Auswahl: Plotten der Triangulierung mit Kanal-Koeffizientenfunktion
-        [rhoTri,rhoTriSD,maxRhoVert,maxRhoVertSD] = coefficient_1(xMin,xMax,yMin,yMax,rhoCanal, ...
-                                                                  rhoNotCanal,vert,tri,numVert,numTri, ...
-                                                                  numSD,logicalTri__sd,N,plot_grid);
+        [rhoTri,rhoTriSD,maxRhoVert,maxRhoVertSD] = coefficient_1(xCanalLim,yCanalLim,rhoMax,rhoMin,vert,tri,logicalTri__sd,plot_grid);
+
         % Structure fuer rho-Variablen
         rho_struct = struct('rhoTriSD',{rhoTriSD},'maxRhoVert',{maxRhoVert},'maxRhoVertSD',{maxRhoVertSD});
         % Structure fuer grid-Variablen

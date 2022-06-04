@@ -1,18 +1,18 @@
 clear; clc;
 addpath('libs')
-plot_sol = 0;
+plot_sol = 1;
 plot_grid = 1;
 part2only = 1;
 
 %% Parameter fuer PCG
 x0 = @(dim) zeros(dim,1);   % Startwert
-tol = 10^(-7);              % Toleranz
+tol = 10^(-8);              % Toleranz
 % Residuum fuer die Abbruchbedingung
 resid_type = {'vorkonditioniert'}; 
 
 %% Erstelle das Gitter
 n = 10; % 2*n^2 Elemente pro Teilgebiet
-N = 3;  % Partition in NxN quadratische Teilgebiete
+N = 5;  % Partition in NxN quadratische Teilgebiete
 numSD = N^2; % Anzahl Teilgebiete
 xyLim = [0,1]; % Gebiet: Einheitsquadrat
 
@@ -37,7 +37,7 @@ yCanalLim  = [3/30,27/30];
 VK = 'Deflation';
 constraint_type = 'adaptive';
 % TOL_vec = 10.^(0);
-TOL_vec = 10.^(1:6);
+TOL_vec = 10.^(2:6);
 rhoMax = 10^6;
 rhoMin= 1;
 
@@ -45,7 +45,7 @@ rhoMin= 1;
 % maximalen Koeffizienten pro Knoten (und teilgebietsweise)
 % [rhoTri,rhoTriSD,maxRhoVert,maxRhoVertSD] = coefficient_1(xCanalLim,yCanalLim,rhoMax,rhoMin,vert,tri,logicalTri__sd,plot_grid);
 % [rhoTri,rhoTriSD,maxRhoVert,maxRhoVertSD] = coefficient_2ii(rhoMax,rhoMin,[2,3,14,17,24,25],vert,tri,logicalTri__sd,plot_grid);
-[rhoTri,rhoTriSD,maxRhoVert,maxRhoVertSD] = coefficient_2iii(rhoMax,rhoMin,vert,tri,logicalTri__sd,0.25,0,plot_grid);
+[rhoTri,rhoTriSD,maxRhoVert,maxRhoVertSD] = coefficient_2iii(rhoMax,rhoMin,vert,tri,logicalTri__sd,0.4,0,plot_grid);
 
 diffs = cell(length(TOL_vec),1);
 iters = cell(length(TOL_vec),1);
