@@ -1,9 +1,11 @@
 function [rhoTri,rhoTriSD,maxRhoVert,maxRhoVertSD] = coefficient_3(rhoMax,rhoMin,vert,tri,logicalTri__sd,random_percentage,random_state,plot)
-% Input: 
-% Input: 
-% Input: tri: Elementliste
-% Input: numVert,numTri,numSD: Anzahl Knoten, Elemente, Teilgebiete
+% Input: rhoMax,rhoMin: rho Werte
+% Input: vert,tri: Knoten- und Elementliste
 % Input: logicalTri__sd: Logischer Vektor, welche Dreiecke in welchem TG enthalten sind
+% Input: random_percentag: Anteil der Elemente mit rhoMax
+% Input: random_state: Seed fuer den RNG
+% Input: plot: Boolean, ob das Gitter mit Kanal geplottet werden soll
+
 
 % Output: rhoTri,rhoTriSD: Koeffizient pro Element (und teilgebietsweise)
 % Output: indElementsrhoMax: Logischer Vektor, welche Elemente in rhoMax liegen
