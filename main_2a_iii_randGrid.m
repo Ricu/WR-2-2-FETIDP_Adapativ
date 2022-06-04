@@ -60,7 +60,7 @@ random_grid = [0,0.1,0.25,0.5,0.75,0.9,1];
 for rand = 1 : length(random_grid)
     % Definiere Koeffizient auf den Elementen (und teilgebietsweise);
     % maximalen Koeffizienten pro Knoten (und teilgebietsweise)
-    [rhoTri,rhoTriSD,maxRhoVert,maxRhoVertSD] = coefficient_2iii(rhoMax_vec,rhoMin,random_grid(rand),tri,vert,numVert,numTri,numSD,logicalTri__sd,N,plot_grid);
+    [rhoTri,rhoTriSD,maxRhoVert,maxRhoVertSD] = coefficient_3(rhoMax_vec,rhoMin,random_grid(rand),tri,vert,numVert,numTri,numSD,logicalTri__sd,N,plot_grid);
     
     %% Aufstellen der Referenzloesung
     % Als Referenzloesung dient die Loesung des global assemblierten Sysmtems
@@ -84,7 +84,7 @@ for rand = 1 : length(random_grid)
         pc_param = struct('VK',VK,'constraint_type',constraint_type,'adaptiveTol',TOL);
         pcg_param = struct('tol', tol, 'x0',x0, 'resid_type',resid_type);
     
-        [cu,u_FETIDP_glob,~,iters{vk_ind}{rand},kappa_ests{vk_ind}{rand}] = fetidp_constraint(grid_struct,f,pc_param,rho_struct,pcg_param,false);
+        [cu,u_FETIDP_glob,~,iters{vk_ind}{rand},kappa_ests{vk_ind}{rand}] = fetidp(grid_struct,f,pc_param,rho_struct,pcg_param,false);
         diffs{vk_ind}{rand} = norm(u_FETIDP_glob-u_ref);
     
 %         figure(fig_VK_comp)

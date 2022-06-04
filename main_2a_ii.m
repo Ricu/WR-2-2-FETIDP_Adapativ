@@ -43,7 +43,7 @@ affectedSubdomains = [2,3,14,17,24,25];
 
 % Definiere Koeffizient auf den Elementen (und teilgebietsweise);
 % maximalen Koeffizienten pro Knoten (und teilgebietsweise)
-[rhoTri,rhoTriSD,maxRhoVert,maxRhoVertSD] = coefficient_2ii(rhoMax,rhoMin,affectedSubdomains,vert,tri,logicalTri__sd,plot_grid);
+[rhoTri,rhoTriSD,maxRhoVert,maxRhoVertSD] = coefficient_2(rhoMax,rhoMin,affectedSubdomains,vert,tri,logicalTri__sd,plot_grid);
 
 %% Aufstellen der Referenzloesung
 % Als Referenzloesung dient die Loesung des global assemblierten Sysmtems
@@ -71,7 +71,7 @@ for vk_ind = 1:length(VK_vec)
     pc_param = struct('VK',VK,'constraint_type',constraint_type,'adaptiveTol',TOL);
     pcg_param = struct('tol', tol, 'x0',x0, 'resid_type',resid_type);
 
-    [cu,u_FETIDP_glob,~,iters{vk_ind},kappa_ests{vk_ind}] = fetidp_constraint(grid_struct,f,pc_param,rho_struct,pcg_param,false);
+    [cu,u_FETIDP_glob,~,iters{vk_ind},kappa_ests{vk_ind}] = fetidp(grid_struct,f,pc_param,rho_struct,pcg_param,false);
     diffs{vk_ind} = norm(u_FETIDP_glob-u_ref);
 
     figure(fig_VK_comp)

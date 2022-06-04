@@ -55,8 +55,8 @@ for rhoInd = 1: length(rhoMax_vec)
     % Definiere Koeffizient auf den Elementen (und teilgebietsweise);
     % maximalen Koeffizienten pro Knoten (und teilgebietsweise)
 %     [rhoTri,rhoTriSD,maxRhoVert,maxRhoVertSD] = coefficient_1(xCanalLim,yCanalLim,rhoMax,rhoMin,vert,tri,logicalTri__sd,plot_grid);
-%     [rhoTri,rhoTriSD,maxRhoVert,maxRhoVertSD] = coefficient_2ii(rhoMax,rhoMin,[2,3,14,17,24,25],vert,tri,logicalTri__sd,plot_grid);
-    [rhoTri,rhoTriSD,maxRhoVert,maxRhoVertSD] = coefficient_2iii(rhoMax,rhoMin,vert,tri,logicalTri__sd,0.25,0,plot_grid);
+%     [rhoTri,rhoTriSD,maxRhoVert,maxRhoVertSD] = coefficient_2(rhoMax,rhoMin,[2,3,14,17,24,25],vert,tri,logicalTri__sd,plot_grid);
+    [rhoTri,rhoTriSD,maxRhoVert,maxRhoVertSD] = coefficient_3(rhoMax,rhoMin,vert,tri,logicalTri__sd,0.25,0,plot_grid);
 
 
     % Als Referenzloesung dient die Loesung des global assemblierten Sysmtems
@@ -73,7 +73,7 @@ for rhoInd = 1: length(rhoMax_vec)
     pc_param = struct('VK',VK,'constraint_type',constraint_type,'adaptiveTol',TOL);
     pcg_param = struct('tol', tol, 'x0',x0, 'resid_type',resid_type);
 
-    [cu,u_FETIDP_glob,~,iters{rhoInd},kappa_ests{rhoInd},~,preconditioned_system] = fetidp_constraint(grid_struct,f,pc_param,rho_struct,pcg_param,plot_sol);
+    [cu,u_FETIDP_glob,~,iters{rhoInd},kappa_ests{rhoInd},~,preconditioned_system] = fetidp(grid_struct,f,pc_param,rho_struct,pcg_param,plot_sol);
     diffs{rhoInd} = norm(u_FETIDP_glob-u_ref);
     
     if plot_sol

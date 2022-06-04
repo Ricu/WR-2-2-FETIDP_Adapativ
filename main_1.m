@@ -85,7 +85,7 @@ for vk_ind = 1:length(VK_vec) %Iteriere ueber VK
     VK = VK_vec{vk_ind};
     % Loesen des Systems mit FETI-DP mit entsprechendem VK
     pc_param = struct('VK',VK,'constraint_type',constraint_type);
-    [cu,u_FETIDP_glob,~,iters{vk_ind},kappa_ests{vk_ind},residuals{vk_ind}] = fetidp_constraint(grid_struct,f,pc_param,rho_struct,pcg_param,true);
+    [cu,u_FETIDP_glob,~,iters{vk_ind},kappa_ests{vk_ind},residuals{vk_ind}] = fetidp(grid_struct,f,pc_param,rho_struct,pcg_param,true);
     
     % Abweichung der Loesung von der Referenzloesung
     diffs{vk_ind} = norm(u_FETIDP_glob-u_ref);
