@@ -1,4 +1,4 @@
-function [rhoTri,rhoTriSD,maxRhoVert,maxRhoVertSD] = coefficient_2ii(rhoMax,rhoMin,affectedSubdomains,vert,tri,logicalTri__sd,plot)
+function [rhoTri,rhoTriSD,maxRhoVert,maxRhoVertSD] = coefficient_2(rhoMax,rhoMin,affectedSubdomains,vert,tri,logicalTri__sd,plot)
 % Input: 
 % Input: 
 % Input: tri: Elementliste

@@ -1,4 +1,4 @@
-function [cu,u_FETIDP_glob,lambda,iter,kappa_est,residual,preconditioned_system] = fetidp_constraint(grid_struct,f,pc_param,rho_struct,pcg_param,plot_iteration)
+function [cu,u_FETIDP_glob,lambda,iter,kappa_est,residual,preconditioned_system] = fetidp(grid_struct,f,pc_param,rho_struct,pcg_param,plot_iteration)
 % Input: grid_struct: Structure mit allen Gitterkomponenten:
 %        Komponenten: vert__sd,tri__sd,l2g__sd,dirichlet
 % Input: f: Function handle fuer rechte Seite der DGL
