@@ -7,13 +7,17 @@ VK_vec = {'Dirichlet',...
           %'Balancing',...
           };
 
-RandomGrid_vec = {'random_grid = 0',...
-                  'random_grid = 0.1',...
-                  'random_grid = 0.25',...
-                  'random_grid = 0.5',...
-                  'random_grid = 0.75',...
-                  'random_grid = 0.9',...
-                  'random_grid = 1.0',...
+RandomPercentage_vec = {'random_percentage = 0',...
+                  'random_percentage = 0.1',...
+                  'random_percentage = 0.2',...
+                  'random_percentage = 0.3',...
+                  'random_percentage = 0.4',...
+                  'random_percentage = 0.5',...
+                  'random_percentage = 0.6',...
+                  'random_percentage = 0.7',...
+                  'random_percentage = 0.8',...
+                  'random_percentage = 0.9',...
+                  'random_percentage = 1.0',...
                    };
 
 constraint_type = 'adaptive';
@@ -24,7 +28,7 @@ kappa_ests = cell(length(VK_vec),1);
 
 %% Parameter fuer PCG
 x0 = @(dim) zeros(dim,1); % Startwert
-tol = 10^(-7); % Toleranz
+tol = 10^(-8); % Toleranz
 % Residuum fuer die Abbruchbedingung
 resid_type = {'vorkonditioniert'}; 
 % resid_type = {'nicht-vorkonditioniert'};
@@ -56,8 +60,9 @@ rhoMin = 1;
 
 % Plot-Auswahl
 plot_grid = false;
-random_grid = [0,0.1,0.25,0.5,0.75,0.9,1];
-for rand = 1 : length(random_grid)
+random_state = 0;
+random_percentage = 0:0.1:1;
+for rand = 1 : length(random_percentage)
     % Definiere Koeffizient auf den Elementen (und teilgebietsweise);
     % maximalen Koeffizienten pro Knoten (und teilgebietsweise)
     [rhoTri,rhoTriSD,maxRhoVert,maxRhoVertSD] = coefficient_3(rhoMax_vec,rhoMin,random_grid(rand),tri,vert,numVert,numTri,numSD,logicalTri__sd,N,plot_grid);
@@ -101,16 +106,16 @@ for rand = 1 : length(random_grid)
 end
 %% Ergebnistabelle
 rowNames = ["Anzahl Iterationen","Konditionszahl","Abweichung von Referenzloesung"];
-T_results = cell2table([iters{1,:};kappa_ests{1,:};diffs{1,:}],"RowNames",rowNames,"VariableNames",RandomGrid_vec)
+T_results = cell2table([iters{1,:};kappa_ests{1,:};diffs{1,:}],"RowNames",rowNames,"VariableNames",RandomPercentage_vec)
 
-figure("Name","Konditionszahl unter verschiedenen random_grid");
+figure("Name","Konditionszahl unter verschiedenen random_percentage");
 tiledlayout('flow')
     nexttile
-    plot(random_grid,cell2mat(iters{1,:}))
+    plot(random_percentage,cell2mat(iters{1,:}))
     title("Anzahl Iterationen");
     nexttile
-    plot(random_grid,cell2mat(kappa_ests{1,:}))
+    plot(random_percentage,cell2mat(kappa_ests{1,:}))
     title("Konditionszahl");
     nexttile
-    plot(random_grid,cell2mat(diffs{1,:}))
+    plot(random_percentage,cell2mat(diffs{1,:}))
     title("Abweichung von der Musterlösung");
