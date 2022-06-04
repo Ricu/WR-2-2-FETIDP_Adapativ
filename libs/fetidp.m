@@ -198,26 +198,26 @@ if strcmp(constraint_type,'adaptive') || strcmp(constraint_type,'non-adaptive')
         cEdgesSD{1} = [cEdgesSD{1};cLM{i}(1,:)];
     end
     edgesSD = unique(cEdgesSD{1},'rows'); % Enthaelt die beiden angrenzenden Teilgebietsnummern pro TG-Kante
-    numEdges = size(edgesSD,1);
+    numEdges = size(edgesSD,1); % Anzahl der Kanten
 
-    edgesDualGlobalAll = cell(size(edgesSD));
-    edgesDual = cell(numEdges,1);
-    edgesDualGlobal = cell(numEdges,1);
+    edgesDualGlobalAll = cell(size(edgesSD)); % Enthaelt fuer jedes angrenzende TG die dualen Knoten (GLOBALE Knotennummern)
+    edgesDual = cell(numEdges,1);  % Enthaelt fuer die TG-Kanten die dualen Knoten (DUALE Knotennummern)
+    edgesDualGlobal = cell(numEdges,1); % Enthaelt fuer die TG-Kanten die dualen Knoten (GLOBALE Knotennummern)
 
-    edgesPrimalGlobalAll = cell(size(edgesSD));
-    edgesPrimalGlobal = cell(numEdges,1);
+    edgesPrimalGlobalAll = cell(size(edgesSD)); % Enthaelt fuer jedes angrenzende TG die primalen Knoten (GLOBALE Knotennummern)
+    edgesPrimalGlobal = cell(numEdges,1); % Enthaelt fuer die TG-Kanten die primalen Knoten (GLOBALE Knotennummern)
 
     for i = 1:numEdges % Iteriere ueber TG-Kanten
         for j = 1:size(edgesSD,2) % Iteriere ueber angrenzende TG
             SD = edgesSD(i,j);
             edgesDualGlobalAll{i,j} = l2g__sd{SD}(cDual{SD});   % Enthaelt fuer jedes angrenzende TG die dualen Knoten (GLOBALE Knotennummern)
-            edgesPrimalGlobalAll{i,j} =  l2g__sd{SD}(cPrimal{SD});
+            edgesPrimalGlobalAll{i,j} =  l2g__sd{SD}(cPrimal{SD}); % Enthaelt fuer jedes angrenzende TG die primalen Knoten (GLOBALE Knotennummern)
         end
         edgesDualGlobal{i} = intersect(edgesDualGlobalAll{i,1},edgesDualGlobalAll{i,2}); % Enthaelt fuer die TG-Kanten die dualen Knoten (GLOBALE Knotennummern)
         edgesDual{i} = mapDual(edgesDualGlobal{i}); % Enthaelt fuer die TG-Kanten die dualen Knoten (DUALE Knotennummern)
-        edgesPrimalGlobal{i} = intersect(edgesPrimalGlobalAll{i,1},edgesPrimalGlobalAll{i,2});
+        edgesPrimalGlobal{i} = intersect(edgesPrimalGlobalAll{i,1},edgesPrimalGlobalAll{i,2}); % Enthaelt fuer die TG-Kanten die primalen Knoten (GLOBALE Knotennummern)
     end
-    % Umkehrabbildung
+    % Umkehrabbildung von globaler zu lokaler Nummerierung
     g2l__sd = cell(numSD,1);
     for sd = 1:numSD
         g2l__sd{sd} = zeros(numVert,1);
@@ -225,11 +225,11 @@ if strcmp(constraint_type,'adaptive') || strcmp(constraint_type,'non-adaptive')
         g2l__sd{sd}(ind) = 1:length(l2g__sd{sd});
     end
 
-    cLocalPrimal = cell(size(edgesSD));
+    cLocalPrimal = cell(size(edgesSD)); % Enthaelt die auf einer TG-Kante liegenden primalen Knoten des TG in lokaler Nummerierung
     for i = 1:numEdges
         for j = 1:2
             sd = edgesSD(i,j);
-            cLocalPrimal{i,j} = g2l__sd{sd}(edgesPrimalGlobal{i});
+            cLocalPrimal{i,j} = g2l__sd{sd}(edgesPrimalGlobal{i}); % Enthaelt die auf einer TG-Kante liegenden primalen Knoten des TG in lokaler Nummerierung
         end
     end
 
@@ -247,12 +247,12 @@ if strcmp(constraint_type,'adaptive') || strcmp(constraint_type,'non-adaptive')
     if strcmp(constraint_type,'adaptive')
         cU=cell(1,numEdges);
         for edgeID = 1:numEdges
-            %% R
-            nPrimal = length(edgesPrimalGlobal{edgeID});
-            nGamma = [nnz(cGamma{edgesSD(edgeID,1)}),nnz(cGamma{edgesSD(edgeID,2)})];
-            nGammaUnass = sum(nGamma);
-            nDual = nGamma-nPrimal;
-            P_e = zeros(nGammaUnass,nPrimal);
+            %% Assemblierungmatrix R_ij
+            nPrimal = length(edgesPrimalGlobal{edgeID}); % Anzahl primaler Knoten auf der Kante
+            nGamma = [nnz(cGamma{edgesSD(edgeID,1)}),nnz(cGamma{edgesSD(edgeID,2)})]; % Anzahl Interfaceknoten pro TG
+            nGammaUnass = sum(nGamma); % Anzahl unassemblierte Interface Knoten beider TG
+            nDual = nGamma-nPrimal; % Anzahl unassemblierter dualer Knoten beider TG
+            P_e = zeros(nGammaUnass,nPrimal); % Teilassemblierungsmatrix
             R_1 = zeros(nGammaUnass,nDual(1));
             R_2 = zeros(nGammaUnass,nDual(2));
             % Knotensortierung in Spalten ist:
