@@ -16,9 +16,9 @@ x0 = @(dim) zeros(dim,1);    % Startvektor
 tol = 10^(-8);               % Toleranz fuer die Abbruchbedingung
 
 % Residuum fuer die Abbruchbedingung
-% resid_type = {'vorkonditioniert'}; 
+resid_type = {'vorkonditioniert'}; 
 % resid_type = {'nicht-vorkonditioniert'};
-resid_type = {'nicht-vorkonditioniert,alternativ'}; % Alternative fuer Deflation
+% resid_type = {'nicht-vorkonditioniert,alternativ'}; % Alternative fuer Deflation
 
 pcg_param = struct('tol', tol, 'x0',x0, 'resid_type',resid_type); % Structure fuer PCG-Parameter
 
@@ -116,4 +116,5 @@ end
 
 %% Ergebnistabelle
 rowNames = ["Anzahl Iterationen","Konditionszahl","Abweichung von Referenzloesung"];
-T_results = cell2table([iters';kappa_ests';diffs'],"RowNames",rowNames,"VariableNames",VK_vec)
+T_results = cell2table([iters';kappa_ests';diffs'],"RowNames",rowNames,"VariableNames",VK_vec);
+disp(T_results)
