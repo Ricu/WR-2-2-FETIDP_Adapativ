@@ -71,12 +71,15 @@ u_ref(~dirichlet) = K_II\b_I;
 for tolInd = 1 : length(TOL_vec)
     TOL = TOL_vec(tolInd);
 
+    % Uebergabe strukturen erstellen
     rho_struct = struct('rhoTriSD',{rhoTriSD},'maxRhoVert',{maxRhoVert},'maxRhoVertSD',{maxRhoVertSD});
     grid_struct = struct('vert__sd',{vert__sd},'tri__sd',{tri__sd},'l2g__sd',{l2g__sd},'dirichlet',{dirichlet});
     pc_param = struct('VK',VK,'constraint_type',constraint_type,'adaptiveTol',TOL);
     pcg_param = struct('tol', tol, 'x0',x0, 'resid_type',resid_type);
 
     [cu,u_FETIDP_glob,~,iters{tolInd},kappa_ests{tolInd},~,preconditioned_system] = fetidp(grid_struct,f,pc_param,rho_struct,pcg_param,plot_sol);
+    
+    % Abweichung der Loesung von der Referenzloesung
     diffs{tolInd} = norm(u_FETIDP_glob-u_ref);
 
     if plot_sol

@@ -2,15 +2,17 @@ clear; clc;
 addpath('libs')
 plot_grid = 0;
 
-%% Definiere Vorkonditionierer
+%% Definiere zu testende Vorkonditionierer
 VK_vec = {'Identitaet',...
           'Dirichlet',...
           'Deflation',...
           'Balancing',...
           };
+
+%% Definiere constraint-Typ
 constraint_type = 'adaptive';
 
-%% Parameter fuer PCG
+%% Initialisiere Parameter fuer PCG
 x0 = @(dim) zeros(dim,1); % Startwert
 tol = 10^(-8); % Toleranz
 % Residuum fuer die Abbruchbedingung
@@ -41,7 +43,6 @@ f = @(vert,y) ones(size(vert));   % Rechte Seite der DGL
 rhoMax = 10^6;
 rhoMin = 1;
 
-
 random_percentage = 0.25;
 % Definiere Koeffizient auf den Elementen (und teilgebietsweise);
 % maximalen Koeffizienten pro Knoten (und teilgebietsweise)
@@ -68,14 +69,18 @@ TOL = 100;
 for vk_ind = 1:length(VK_vec)
     VK = VK_vec{vk_ind};
 
+    % Uebergabe strukturen erstellen
     rho_struct = struct('rhoTriSD',{rhoTriSD},'maxRhoVert',{maxRhoVert},'maxRhoVertSD',{maxRhoVertSD});
     grid_struct = struct('vert__sd',{vert__sd},'tri__sd',{tri__sd},'l2g__sd',{l2g__sd},'dirichlet',{dirichlet});
     pc_param = struct('VK',VK,'constraint_type',constraint_type,'adaptiveTol',TOL);
     pcg_param = struct('tol', tol, 'x0',x0, 'resid_type',resid_type);
 
     [cu,u_FETIDP_glob,~,iters{vk_ind},kappa_ests{vk_ind}] = fetidp(grid_struct,f,pc_param,rho_struct,pcg_param,false);
+    
+    % Abweichung der Loesung von der Referenzloesung
     diffs{vk_ind} = norm(u_FETIDP_glob-u_ref);
 
+    % Plotten der finalen Loesung
     figure(fig_VK_comp)
     nexttile
     hold on

@@ -74,6 +74,8 @@ for rhoInd = 1: length(rhoMax_vec)
     pcg_param = struct('tol', tol, 'x0',x0, 'resid_type',resid_type);
 
     [cu,u_FETIDP_glob,~,iters{rhoInd},kappa_ests{rhoInd},~,preconditioned_system] = fetidp(grid_struct,f,pc_param,rho_struct,pcg_param,plot_sol);
+    
+    % Abweichung der Loesung von der Referenzloesung
     diffs{rhoInd} = norm(u_FETIDP_glob-u_ref);
     
     if plot_sol
@@ -88,7 +90,6 @@ for rhoInd = 1: length(rhoMax_vec)
         view(3)
         hold off
     end
-
 
     % Analysiere EW und Kondition von invmF
     cond_vec(rhoInd) = cond(1/2*(preconditioned_system+preconditioned_system')); % Resymmetrisiere
