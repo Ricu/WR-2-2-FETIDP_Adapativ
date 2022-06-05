@@ -1,9 +1,12 @@
 clear; clc;
 addpath('libs')
-plot_grid = 0;
+plot_iteration = 0;
+plot_grid = 1;
+
 
 %% Definiere zu testende Vorkonditionierer
-VK_vec = {'Dirichlet',...
+VK_vec = {'Identitaet',...
+    'Dirichlet',...
     'Deflation',...
     'Balancing',...
     };
@@ -76,7 +79,7 @@ for vk_ind = 1:length(VK_vec)
     pc_param = struct('VK',VK,'constraint_type',constraint_type,'adaptiveTol',TOL);
     pcg_param = struct('tol', tol, 'x0',x0, 'resid_type',resid_type);
 
-    [cu,u_FETIDP_glob,~,iters{vk_ind},kappa_ests{vk_ind}] = fetidp(grid_struct,f,pc_param,rho_struct,pcg_param,false);
+    [cu,u_FETIDP_glob,~,iters{vk_ind},kappa_ests{vk_ind}] = fetidp(grid_struct,f,pc_param,rho_struct,pcg_param,plot_iteration);
     
     % Abweichung der Loesung von der Referenzloesung
     diffs{vk_ind} = norm(u_FETIDP_glob-u_ref);
