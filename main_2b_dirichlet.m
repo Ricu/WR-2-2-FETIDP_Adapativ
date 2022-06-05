@@ -1,7 +1,8 @@
 clear; clc;
 addpath('libs')
-plot_sol = 0;
-plot_grid = 1;
+plot_iteration = 0;
+plot_solution = 0;
+plot_grid = 0;
 
 %% Parameter fuer PCG
 x0 = @(dim) zeros(dim,1);   % Startwert
@@ -11,7 +12,7 @@ resid_type = {'vorkonditioniert'};
 
 %% Erstelle das Gitter
 n = 10; % 2*n^2 Elemente pro Teilgebiet
-N = 5;  % Partition in NxN quadratische Teilgebiete
+N = 3;  % Partition in NxN quadratische Teilgebiete
 numSD = N^2; % Anzahl Teilgebiete
 xyLim = [0,1]; % Gebiet: Einheitsquadrat
 
@@ -36,27 +37,28 @@ yCanalLim  = [3/30,27/30];
 VK = 'Dirichlet';
 constraint_type = 'adaptive';
 rhoMax_vec = 10.^(1:8);
+rhoMax_vec = 10.^(0:2:14);
 TOL= 100;
 
 diffs = cell(length(rhoMax_vec),1);
 iters = cell(length(rhoMax_vec),1);
 kappa_ests = cell(length(rhoMax_vec),1);
 cond_vec = zeros(length(rhoMax_vec),1);
-if plot_sol
+if plot_solution
     fig_solutions = figure("Name","Loesungen");
     tiledlayout('flow')
 end
 fig_ew = figure("Name", "Darstellung der Top 50 Eigenwerte des vorkonditionierten Systems");
-tiledlayout('flow')
+tiledlayout('flow','TileSpacing','tight')
 for rhoInd = 1: length(rhoMax_vec)
     rhoMax = rhoMax_vec(rhoInd);
     rhoMin = 1;
 
     % Definiere Koeffizient auf den Elementen (und teilgebietsweise);
     % maximalen Koeffizienten pro Knoten (und teilgebietsweise)
-%     [rhoTri,rhoTriSD,maxRhoVert,maxRhoVertSD] = coefficient_1(xCanalLim,yCanalLim,rhoMax,rhoMin,vert,tri,logicalTri__sd,plot_grid);
+    [rhoTri,rhoTriSD,maxRhoVert,maxRhoVertSD] = coefficient_1(xCanalLim,yCanalLim,rhoMax,rhoMin,vert,tri,logicalTri__sd,plot_grid);
 %     [rhoTri,rhoTriSD,maxRhoVert,maxRhoVertSD] = coefficient_2(rhoMax,rhoMin,[2,3,14,17,24,25],vert,tri,logicalTri__sd,plot_grid);
-    [rhoTri,rhoTriSD,maxRhoVert,maxRhoVertSD] = coefficient_3(rhoMax,rhoMin,vert,tri,logicalTri__sd,0.25,0,plot_grid);
+%     [rhoTri,rhoTriSD,maxRhoVert,maxRhoVertSD] = coefficient_3(rhoMax,rhoMin,vert,tri,logicalTri__sd,0.25,0,plot_grid);
 
 
     % Als Referenzloesung dient die Loesung des global assemblierten Sysmtems
@@ -73,12 +75,12 @@ for rhoInd = 1: length(rhoMax_vec)
     pc_param = struct('VK',VK,'constraint_type',constraint_type,'adaptiveTol',TOL);
     pcg_param = struct('tol', tol, 'x0',x0, 'resid_type',resid_type);
 
-    [cu,u_FETIDP_glob,~,iters{rhoInd},kappa_ests{rhoInd},~,preconditioned_system] = fetidp(grid_struct,f,pc_param,rho_struct,pcg_param,plot_sol);
+    [cu,u_FETIDP_glob,~,iters{rhoInd},kappa_ests{rhoInd},~,preconditioned_system] = fetidp(grid_struct,f,pc_param,rho_struct,pcg_param,plot_iteration);
     
     % Abweichung der Loesung von der Referenzloesung
     diffs{rhoInd} = norm(u_FETIDP_glob-u_ref);
     
-    if plot_sol
+    if plot_solution
         figure(fig_solutions)
         nexttile
         hold on
@@ -92,15 +94,15 @@ for rhoInd = 1: length(rhoMax_vec)
     end
 
     % Analysiere EW und Kondition von invmF
-    cond_vec(rhoInd) = cond(1/2*(preconditioned_system+preconditioned_system')); % Resymmetrisiere
     ew = abs(eig(preconditioned_system));
     ew = sort(ew,'descend');
     topEW = ew(1:min(length(ew),50));
+    cond_vec(rhoInd) = topEW(1); % Resymmetrisiere
     % Plot der 50 groessten EW
     figure(fig_ew)
     nexttile
-    scatter(1:50,topEW)
-    title(sprintf("%s-VK und rhoMax = %i",VK,rhoMax));
+    scatter(1:50,topEW,18,'k','filled')
+    title(sprintf("\\rho_{max}/\\rho_{min} = %.0e",rhoMax));
 
 end
 fig_condition = figure("Name","Kondition in Abhängigkeit von rhoMax");
