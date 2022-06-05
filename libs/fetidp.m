@@ -368,6 +368,7 @@ if strcmp(constraint_type,'adaptive') || strcmp(constraint_type,'non-adaptive')
         % verkettet werden
         U = cell2mat(cU);
     end
+    fprintf('%s-Vorkonditionierer\n',VK);
     fprintf('Anzahl Nebenbedingungen = %i, Spaltenrang = %i\n', size(U,2),rank(U,1e-16));
     fprintf('Anzahl Zeilen von U/Anzahl LM= %i\n',size(U,1) );
 
