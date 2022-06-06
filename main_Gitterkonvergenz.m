@@ -5,11 +5,11 @@ addpath('libs')
 n_vec = [10,20];%,30,40];    % 2*n^2 Elemente pro Teilgebiet
 
 %% Definiere zu testende Vorkonditionierer
-% VK_vec = {'Deflation',...
-%     'Balancing'...
-%     };
-VK_vec = {'Identitaet',...
-          'Dirichlet'};
+VK_vec = {'Deflation',...
+    'Balancing'...
+    };
+% VK_vec = {'Identitaet',...
+%           'Dirichlet'};
 
 %% Definiere constraint-Typ
 constraint_type_vec = {'non-adaptive',...
@@ -99,7 +99,7 @@ for constraint_type_ind = 1:length(constraint_type_vec)
             else
                 pc_param = struct('VK',VK,'constraint_type',constraint_type);
             end 
-            [~,u_FETIDP_glob,~,iters{vk_ind,n_ind},kappa_ests{vk_ind,n_ind},~] = fetidp_constraint(grid_struct,f,pc_param,rho_struct,pcg_param,false);
+            [~,u_FETIDP_glob,~,iters{vk_ind,n_ind},kappa_ests{vk_ind,n_ind},~] = fetidp(grid_struct,f,pc_param,rho_struct,pcg_param,false);
             
             % Abweichung der Loesung von der Referenzloesung
             diffs{vk_ind,n_ind} = norm(u_FETIDP_glob-u_ref);

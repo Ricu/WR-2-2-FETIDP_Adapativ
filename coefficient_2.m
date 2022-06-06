@@ -1,9 +1,9 @@
-function [rhoTri,rhoTriSD,maxRhoVert,maxRhoVertSD] = coefficient_2ii(rhoMax,rhoMin,affectedSubdomains,vert,tri,logicalTri__sd,plot)
-% Input: 
-% Input: 
-% Input: tri: Elementliste
-% Input: numVert,numTri,numSD: Anzahl Knoten, Elemente, Teilgebiete
+function [rhoTri,rhoTriSD,maxRhoVert,maxRhoVertSD] = coefficient_2(rhoMax,rhoMin,affectedSubdomains,vert,tri,logicalTri__sd,plot)
+% Input: rhoMax,rhoMin: rho Werte
+% Input: affectedSubdomains: markiert in welchen TG rhoMax angenommen wird
+% Input: vert,tri: Knoten- und Elementliste
 % Input: logicalTri__sd: Logischer Vektor, welche Dreiecke in welchem TG enthalten sind
+% Input: plot: Boolean, ob das Gitter mit Kanal geplottet werden soll
 
 % Output: rhoTri,rhoTriSD: Koeffizient pro Element (und teilgebietsweise)
 % Output: indElementsrhoMax: Logischer Vektor, welche Elemente in rhoMax liegen

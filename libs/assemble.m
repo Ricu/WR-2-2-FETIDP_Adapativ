@@ -1,4 +1,13 @@
 function [K,M,b] = assemble(tri,x,order,f,rhoTri)
+% Input: tri, x: Element- und Knotenliste
+% Input: order: Ordnung der Elementdiskretisierung
+% Input: f: rechte Seite der DGL
+% Input: rhoTri: Koeffizient pro Element
+
+% Output: K: Elementsteifigkeitsmatrix
+% Output: M: Massenmatrix
+% Output: b: Lastvektor
+
 % Number of x and base functions
 numElements = size(tri,1);
 numBaseFun = (order+2)*(order+1)/2;
