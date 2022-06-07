@@ -1,7 +1,7 @@
 clear; clc;
 addpath('libs')
 plot_iteration = 0;
-plot_grid = 0;
+plot_grid = 1;
 
 %% Definiere zu testende Vorkonditionierer
 VK_vec = {'Identitaet',...
