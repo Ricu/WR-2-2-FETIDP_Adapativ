@@ -12,7 +12,7 @@ resid_type = {'vorkonditioniert'};
 
 %% Erstelle das Gitter
 n = 10; % 2*n^2 Elemente pro Teilgebiet
-N = 3;  % Partition in NxN quadratische Teilgebiete
+N = 5;  % Partition in NxN quadratische Teilgebiete
 numSD = N^2; % Anzahl Teilgebiete
 xyLim = [0,1]; % Gebiet: Einheitsquadrat
 
@@ -38,6 +38,7 @@ VK = 'Dirichlet';
 constraint_type = 'adaptive';
 rhoMax_vec = 10.^(1:8);
 rhoMax_vec = 10.^(0:2:14);
+rhoMin = 1;
 TOL= 100;
 
 diffs = cell(length(rhoMax_vec),1);
@@ -52,7 +53,6 @@ fig_ew = figure("Name", "Darstellung der Top 50 Eigenwerte des vorkonditionierte
 tiledlayout('flow','TileSpacing','tight')
 for rhoInd = 1: length(rhoMax_vec)
     rhoMax = rhoMax_vec(rhoInd);
-    rhoMin = 1;
 
     % Definiere Koeffizient auf den Elementen (und teilgebietsweise);
     % maximalen Koeffizienten pro Knoten (und teilgebietsweise)
@@ -113,7 +113,5 @@ xlabel(sprintf("\\rho")); ylabel("Konditionszahl");
 % Ergebnistabelle
 rowNames = ["Anzahl Iterationen","Konditionszahl","Abweichung von Referenzloesung"];
 variableNames = cellfun(@num2str,num2cell(rhoMax_vec),'UniformOutput',false);
-fprintf('RhoCanal: %g \n',rhoMax)
-fprintf('TOL zur Auswahl der EW: %g \n',TOL)
 T_results = cell2table([iters';kappa_ests';diffs'],"RowNames",rowNames,"VariableNames",variableNames);
 disp(T_results)

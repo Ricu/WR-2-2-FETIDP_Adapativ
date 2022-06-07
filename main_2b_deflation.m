@@ -12,7 +12,7 @@ resid_type = {'vorkonditioniert'};
 
 %% Erstelle das Gitter
 n = 10; % 2*n^2 Elemente pro Teilgebiet
-N = 3;  % Partition in NxN quadratische Teilgebiete
+N = 5;  % Partition in NxN quadratische Teilgebiete
 numSD = N^2; % Anzahl Teilgebiete
 xyLim = [0,1]; % Gebiet: Einheitsquadrat
 

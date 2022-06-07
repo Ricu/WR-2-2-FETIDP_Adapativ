@@ -1,4 +1,9 @@
 function [phi,d_phi] = baseFun(order)
+% Input: order: Ordnung der Elementdiskretisierung
+
+% Output: phi: Basisfunktionen
+% Output: d_phi: Ableitung der Basisfunktion
+
 if order == 1
     %% P1
         phi1 = @(x,y) 1-x-y; phi2 = @(x,y) x; phi3 = @(x,y) y; 
