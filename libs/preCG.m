@@ -49,6 +49,7 @@ end
 
 if plot_struct.plot_iteration
     figure("Name","Loesungen waehrend der Iteration von PCG")
+    tiledlayout('flow')
 end
 
 %% Iteration bis geforderte Genauigkeit erreicht

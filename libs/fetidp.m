@@ -465,7 +465,8 @@ function [cu,u_FETIDP_glob] = plotiter(lambda,iter,VK,cB_B,cK_BB,cK_PiB,cb_B,cPr
     l2g__sd,cPrimal,cIDual,S_PiPi,f_PiTilde,f_B,tri__sd,vert__sd)
 [cu,u_FETIDP_glob] = extract_u(lambda,cB_B,cK_BB,cK_PiB,cb_B,cPrimalMap, ...
     l2g__sd,cPrimal,cIDual,S_PiPi,f_PiTilde,f_B);
-subplot(1,4,iter+1)
+% subplot(1,4,iter+1)
+nexttile
 hold on
 for i = 1:length(tri__sd)
     trisurf(tri__sd{i},vert__sd{i}(:,1),vert__sd{i}(:,2),cu{i});
