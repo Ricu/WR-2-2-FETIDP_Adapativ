@@ -10,7 +10,6 @@ function [x,iter,kappa_est,residual] = preCG(A,invM,b,pcg_param,VK,plot_struct,c
 % Input: constraint_struct: Structure mit allen Parametern fuer constraints 
 %        Komponenten: U,invUFU,IminusPtranspose
 
-
 % Output: x: Loesungsvektor des LGS
 % Output: iter: Anzahl Iterationen
 % Output: kappa_est: Konditionszahlschaetzung aus dem Lanczos-Prozess
@@ -33,7 +32,7 @@ z0 = invM(rk);  % Vorkonditioniertes Residuum
 zk = z0;
 pk = zk;        % Abstiegsrichtung
 
-%Speicherreservierung fuer alpha, beta und die Residuen
+% Speicherreservierung fuer alpha, beta und die Residuen
 alpha_vec = zeros(1000,1);
 beta_vec = zeros(1000,1);
 residual_vec = zeros(1000,1);
@@ -54,7 +53,7 @@ end
 
 %% Iteration bis geforderte Genauigkeit erreicht
 iter = 0;   % Anzahl Iterationen
-while residual > tol     % Abbruchbedingung
+while residual > tol 
     % Plotten der Loesungen der ersten Iterationen
     if plot_struct.plot_iteration && iter < 4
         if strcmp('Deflation',VK) && iter > 0
@@ -105,7 +104,7 @@ alpha = alpha_vec(1:iter);
 beta = beta_vec(1:iter);
 residual = residual_vec(1:iter);
 
-% Berechne die Konditionszahlschätzung des Lanczos-Prozess
+% Berechne die Konditionszahlschaetzung des Lanczos-Prozess
 if nargout > 3
     temp1 = [sqrt(beta(1:end-1))./alpha(1:end-1); 0];
     temp2 = (1./alpha) + [0;beta(1:iter-1)]./[1;alpha(1:iter-1)];

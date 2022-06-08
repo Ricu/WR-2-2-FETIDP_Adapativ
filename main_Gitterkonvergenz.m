@@ -2,19 +2,21 @@ clear; clc;
 addpath('libs')
 
 %% Definiere Gitterfeinheiten
-n_vec = [10,20,30,40];    % 2*n^2 Elemente pro Teilgebiet
+n_vec = [10,20,30];    % 2*n^2 Elemente pro Teilgebiet
 
 %% Definiere zu testende Vorkonditionierer
-VK_vec = {'Deflation',...
-    'Balancing'...
-    };
-% VK_vec = {'Identitaet',...
-%           'Dirichlet'};
+VK_vec = {'Identitaet',...
+          'Dirichlet',...
+          'Deflation',...
+          'Balancing'...
+          };
 
 %% Definiere constraint-Typ
 constraint_type_vec = {'non-adaptive',...
-    'adaptive'...
-    };
+                       'adaptive'...
+                        };
+                    
+TOL = 100;  % Toleranz zur Auswahl der Eigenwerte
 
 %% Initialisiere Parameter fuer PCG
 x0 = @(dim) zeros(dim,1);    % Startvektor
@@ -25,18 +27,19 @@ resid_type = {'vorkonditioniert'};
 % resid_type = {'nicht-vorkonditioniert'};
 % resid_type = {'nicht-vorkonditioniert,alternativ'}; % Alternative fuer Deflation
 
+% Structure fuer PCG-Parameter
 pcg_param = struct('tol', tol, 'x0',x0, 'resid_type',resid_type); % Structure fuer PCG-Parameter
 
 %% PDE
 f = @(vert,y) ones(size(vert));   % Rechte Seite der DGL
 
-%% Erstelle das Gitter
+%% Definiere Gitterparameter
 N = 3;                  % Partition in NxN quadratische Teilgebiete
 h_vec = 1./(N.*n_vec);  % Gitterfeinheit
 numSD = N^2;            % Anzahl Teilgebiete
 xyLim = [0,1];          % Gebiet: Einheitsquadrat
 
-%% Definiere Kanal-Koeffizientenfunktion
+%% Definiere Parameter fuer Kanal-Koeffizientenfunktion
 % Definiere Bereich des Kanals
 xCanalLim = [14/30,16/30];
 yCanalLim  = [3/30,27/30];
@@ -45,8 +48,7 @@ yCanalLim  = [3/30,27/30];
 rhoMax = 10^6;
 rhoMin = 1;
 
-color = {'blue','red'};
-
+%% Iteriere ueber constraint, Gitterfeinheit und VK
 for constraint_type_ind = 1:length(constraint_type_vec)
     constraint_type = constraint_type_vec{constraint_type_ind};
     
@@ -58,6 +60,8 @@ for constraint_type_ind = 1:length(constraint_type_vec)
     
     for n_ind = 1:length(n_vec)
         n = n_vec(n_ind);
+        
+        %% Erstelle das Gitter
         [vert,tri] = genMeshSquare(N,n);            % Erstelle Knoten- und Elementliste
         numVert=size(vert,1);   numTri=size(tri,1); % Anzahl Knoten und Dreiecke
         
@@ -68,15 +72,18 @@ for constraint_type_ind = 1:length(constraint_type_vec)
         % Markiere Dirichletknoten in logischem Vektor
         dirichlet = or(ismember(vert(:,1),xyLim), ismember(vert(:,2),xyLim));
         
+        % Structure fuer grid-Variablen
+        grid_struct = struct('vert__sd',{vert__sd},'tri__sd',{tri__sd},'l2g__sd',{l2g__sd},'dirichlet',{dirichlet});
+        
+        %% Definiere Kanal-Koeffizientenfunktion
         % Definiere Koeffizient auf den Elementen (und teilgebietsweise);
         % Maximalen Koeffizienten pro Knoten (und teilgebietsweise)
         plot_grid = false;   % Auswahl: Plotten der Triangulierung mit Kanal-Koeffizientenfunktion
-        [rhoTri,rhoTriSD,maxRhoVert,maxRhoVertSD] = coefficient_1(xCanalLim,yCanalLim,rhoMax,rhoMin,vert,tri,logicalTri__sd,plot_grid);
+        [rhoTri,rhoTriSD,maxRhoVert,maxRhoVertSD] = coefficient_1(xCanalLim,yCanalLim,rhoMax,rhoMin, ...
+                                                                    vert,tri,logicalTri__sd,plot_grid);
 
         % Structure fuer rho-Variablen
         rho_struct = struct('rhoTriSD',{rhoTriSD},'maxRhoVert',{maxRhoVert},'maxRhoVertSD',{maxRhoVertSD});
-        % Structure fuer grid-Variablen
-        grid_struct = struct('vert__sd',{vert__sd},'tri__sd',{tri__sd},'l2g__sd',{l2g__sd},'dirichlet',{dirichlet});
         
         %% Aufstellen der Referenzloesung
         % Als Referenzloesung dient die Loesung des global assemblierten Sysmtems
@@ -94,7 +101,6 @@ for constraint_type_ind = 1:length(constraint_type_vec)
             
             % Loesen des Systems mit FETI-DP mit entsprechendem VK
             if strcmp('adaptive',constraint_type)
-                TOL = 100;
                 pc_param = struct('VK',VK,'constraint_type',constraint_type,'adaptiveTol',TOL);
             else
                 pc_param = struct('VK',VK,'constraint_type',constraint_type);
@@ -111,20 +117,21 @@ for constraint_type_ind = 1:length(constraint_type_vec)
     kappa_ests = cell2mat(kappa_ests);
 
     %% Plotten der Ergebnisse
+    %Anzahl Iterationen, Konditionszahl, Abweichung von Referenzloesung
     for vk_ind = 1:length(VK_vec) 
         subplot(1,3,1)
         hold on
-        plot(h_vec,iters(vk_ind,:),color{vk_ind},'DisplayName',VK_vec{vk_ind})
+        plot(h_vec,iters(vk_ind,:),'DisplayName',VK_vec{vk_ind})
         hold off
         
         subplot(1,3,2)
         hold on
-        plot(h_vec,kappa_ests(vk_ind,:),color{vk_ind},'DisplayName',VK_vec{vk_ind})
+        plot(h_vec,kappa_ests(vk_ind,:),'DisplayName',VK_vec{vk_ind})
         hold off
         
         subplot(1,3,3)
         hold on
-        plot(h_vec,diffs(vk_ind,:),color{vk_ind},'DisplayName',VK_vec{vk_ind})
+        plot(h_vec,diffs(vk_ind,:),'DisplayName',VK_vec{vk_ind})
         hold off
     end
     subplot(1,3,1)

@@ -20,7 +20,8 @@ resid_type = {'vorkonditioniert'};
 % resid_type = {'nicht-vorkonditioniert'};
 % resid_type = {'nicht-vorkonditioniert,alternativ'}; % Alternative fuer Deflation
 
-pcg_param = struct('tol', tol, 'x0',x0, 'resid_type',resid_type); % Structure fuer PCG-Parameter
+% Structure fuer PCG-Parameter
+pcg_param = struct('tol', tol, 'x0',x0, 'resid_type',resid_type);
 
 %% PDE
 f = @(vert,y) ones(size(vert));   % Rechte Seite der DGL
@@ -41,6 +42,9 @@ numVert=size(vert,1);   numTri=size(tri,1); % Anzahl Knoten und Dreiecke
 % Markiere Dirichletknoten in logischem Vektor
 dirichlet = or(ismember(vert(:,1),xyLim), ismember(vert(:,2),xyLim)); 
 
+% Structure fuer grid-Variablen
+grid_struct = struct('vert__sd',{vert__sd},'tri__sd',{tri__sd},'l2g__sd',{l2g__sd},'dirichlet',{dirichlet});
+
 %% Definiere Kanal-Koeffizientenfunktion
 % Definiere Bereich des Kanals
 xCanalLim = [14/30,16/30];
@@ -52,14 +56,12 @@ rhoMin = 1;
 
 % Definiere Koeffizient auf den Elementen (und teilgebietsweise);
 % Maximalen Koeffizienten pro Knoten (und teilgebietsweise)
-plot = true;   % Auswahl: Plotten der Triangulierung mit Kanal-Koeffizientenfunktion
+plot_grid = true;   % Auswahl: Plotten der Triangulierung mit Kanal-Koeffizientenfunktion
 [rhoTri,rhoTriSD,maxRhoVert,maxRhoVertSD] = coefficient_1(xCanalLim,yCanalLim,rhoMax, ...
-                                                           rhoMin,vert,tri,logicalTri__sd,plot);
+                                                           rhoMin,vert,tri,logicalTri__sd,plot_grid);
                                                       
 % Structure fuer rho-Variablen
 rho_struct = struct('rhoTriSD',{rhoTriSD},'maxRhoVert',{maxRhoVert},'maxRhoVertSD',{maxRhoVertSD}); 
-% Structure fuer grid-Variablen
-grid_struct = struct('vert__sd',{vert__sd},'tri__sd',{tri__sd},'l2g__sd',{l2g__sd},'dirichlet',{dirichlet});
 
 %% Aufstellen der Referenzloesung
 % Als Referenzloesung dient die Loesung des global assemblierten Sysmtems
@@ -81,11 +83,13 @@ fig_VK_comp_solution = figure("Name","Loesungen fuer verschiedene Vorkonditionie
 fig_VK_comp_residuals = figure("Name",sprintf("Verlauf des %s Residuums fuer verschiedene Vorkonditionierer",append(resid_type{1},"en")));
 tiledlayout('flow')
 
-for vk_ind = 1:length(VK_vec) %Iteriere ueber VK
+plot_iteration = true; % Auswahl: Plotten der Loesung nach den ersten Iterationen von PCG
+
+for vk_ind = 1:length(VK_vec)
     VK = VK_vec{vk_ind};
     % Loesen des Systems mit FETI-DP mit entsprechendem VK
     pc_param = struct('VK',VK,'constraint_type',constraint_type);
-    [cu,u_FETIDP_glob,~,iters{vk_ind},kappa_ests{vk_ind},residuals{vk_ind}] = fetidp(grid_struct,f,pc_param,rho_struct,pcg_param,true);
+    [cu,u_FETIDP_glob,~,iters{vk_ind},kappa_ests{vk_ind},residuals{vk_ind}] = fetidp(grid_struct,f,pc_param,rho_struct,pcg_param,plot_iteration);
     
     % Abweichung der Loesung von der Referenzloesung
     diffs{vk_ind} = norm(u_FETIDP_glob-u_ref);
@@ -105,13 +109,10 @@ for vk_ind = 1:length(VK_vec) %Iteriere ueber VK
     % Plotten des Verlaufs des relativen Residuums
     figure(fig_VK_comp_residuals)
     nexttile
-    
     semilogy(1:iters{vk_ind},residuals{vk_ind});
-    hold on
     xlabel("Iteration"); ylabel("Relatives Residuum");
     title(sprintf("%s Residuum: %s-VK",append(resid_type{1},"es"),VK));
-    view(2)
-    hold off   
+    view(2)   
 end
 
 %% Ergebnistabelle
