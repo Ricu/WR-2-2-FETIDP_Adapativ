@@ -60,9 +60,9 @@ if plot
         line([i/N,i/N],[0,1],'LineWidth', 1.5, 'color', 'r')
     end
     rhoMax = sprintf('\\rho = %.0e',rhoMax);
-    legend('\rho = 1',rhoMax,'Interface','','','')
+    rhoMin = sprintf('\\rho = %g',rhoMin);
+    legend(rhoMin,rhoMax,'Interface','','','')
     title("Triangulierung mit Koeffizientenfunktion")
 end
-
 end
 

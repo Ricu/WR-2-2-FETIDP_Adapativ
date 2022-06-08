@@ -198,25 +198,26 @@ if strcmp(constraint_type,'adaptive') || strcmp(constraint_type,'non-adaptive')
         cEdgesSD{1} = [cEdgesSD{1};cLM{i}(1,:)];
     end
     edgesSD = unique(cEdgesSD{1},'rows'); % Enthaelt die beiden angrenzenden Teilgebietsnummern pro TG-Kante
-    numEdges = size(edgesSD,1); % Anzahl der Kanten
+    numEdges = size(edgesSD,1);           % Anzahl der Kanten
 
     edgesDualGlobalAll = cell(size(edgesSD)); % Enthaelt fuer jedes angrenzende TG die dualen Knoten (GLOBALE Knotennummern)
-    edgesDual = cell(numEdges,1);  % Enthaelt fuer die TG-Kanten die dualen Knoten (DUALE Knotennummern)
-    edgesDualGlobal = cell(numEdges,1); % Enthaelt fuer die TG-Kanten die dualen Knoten (GLOBALE Knotennummern)
+    edgesDual = cell(numEdges,1);             % Enthaelt fuer die TG-Kanten die dualen Knoten (DUALE Knotennummern)
+    edgesDualGlobal = cell(numEdges,1);       % Enthaelt fuer die TG-Kanten die dualen Knoten (GLOBALE Knotennummern)
 
     edgesPrimalGlobalAll = cell(size(edgesSD)); % Enthaelt fuer jedes angrenzende TG die primalen Knoten (GLOBALE Knotennummern)
-    edgesPrimalGlobal = cell(numEdges,1); % Enthaelt fuer die TG-Kanten die primalen Knoten (GLOBALE Knotennummern)
+    edgesPrimalGlobal = cell(numEdges,1);       % Enthaelt fuer die TG-Kanten die primalen Knoten (GLOBALE Knotennummern)
 
     for i = 1:numEdges % Iteriere ueber TG-Kanten
         for j = 1:size(edgesSD,2) % Iteriere ueber angrenzende TG
             SD = edgesSD(i,j);
-            edgesDualGlobalAll{i,j} = l2g__sd{SD}(cDual{SD});   % Enthaelt fuer jedes angrenzende TG die dualen Knoten (GLOBALE Knotennummern)
+            edgesDualGlobalAll{i,j} = l2g__sd{SD}(cDual{SD});      % Enthaelt fuer jedes angrenzende TG die dualen Knoten (GLOBALE Knotennummern)
             edgesPrimalGlobalAll{i,j} =  l2g__sd{SD}(cPrimal{SD}); % Enthaelt fuer jedes angrenzende TG die primalen Knoten (GLOBALE Knotennummern)
         end
         edgesDualGlobal{i} = intersect(edgesDualGlobalAll{i,1},edgesDualGlobalAll{i,2}); % Enthaelt fuer die TG-Kanten die dualen Knoten (GLOBALE Knotennummern)
-        edgesDual{i} = mapDual(edgesDualGlobal{i}); % Enthaelt fuer die TG-Kanten die dualen Knoten (DUALE Knotennummern)
+        edgesDual{i} = mapDual(edgesDualGlobal{i});     % Enthaelt fuer die TG-Kanten die dualen Knoten (DUALE Knotennummern)
         edgesPrimalGlobal{i} = intersect(edgesPrimalGlobalAll{i,1},edgesPrimalGlobalAll{i,2}); % Enthaelt fuer die TG-Kanten die primalen Knoten (GLOBALE Knotennummern)
     end
+    
     % Umkehrabbildung von globaler zu lokaler Nummerierung
     g2l__sd = cell(numSD,1);
     for sd = 1:numSD
@@ -311,8 +312,7 @@ if strcmp(constraint_type,'adaptive') || strcmp(constraint_type,'non-adaptive')
                 relevantPrimal = cLocalPrimal{edgeID,k};
                 relevantGamma = setdiff(find(cGamma{sd}),relevantPrimal);
                 
-                % Schreibe die Kombination aus primal und rest in ein 2x2
-                % Cell
+                % Schreibe die Kombination aus primal und rest in einen 2x2-Cell
                 S = cell(2,2);
 
                 % Nur in primalen (primal,primal)

@@ -42,6 +42,9 @@ numVert=size(vert,1);   numTri=size(tri,1); % Anzahl Knoten und Dreiecke
 % Markiere Dirichletknoten in logischem Vektor
 dirichlet = or(ismember(vert(:,1),xyLim), ismember(vert(:,2),xyLim)); 
 
+% Structure fuer grid-Variablen
+grid_struct = struct('vert__sd',{vert__sd},'tri__sd',{tri__sd},'l2g__sd',{l2g__sd},'dirichlet',{dirichlet});
+
 %% Definiere Kanal-Koeffizientenfunktion
 % Definiere Bereich des Kanals
 xCanalLim = [14/30,16/30];
@@ -59,8 +62,6 @@ plot_grid = true;   % Auswahl: Plotten der Triangulierung mit Kanal-Koeffiziente
                                                       
 % Structure fuer rho-Variablen
 rho_struct = struct('rhoTriSD',{rhoTriSD},'maxRhoVert',{maxRhoVert},'maxRhoVertSD',{maxRhoVertSD}); 
-% Structure fuer grid-Variablen
-grid_struct = struct('vert__sd',{vert__sd},'tri__sd',{tri__sd},'l2g__sd',{l2g__sd},'dirichlet',{dirichlet});
 
 %% Aufstellen der Referenzloesung
 % Als Referenzloesung dient die Loesung des global assemblierten Sysmtems

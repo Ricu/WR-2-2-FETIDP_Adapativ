@@ -8,19 +8,19 @@ function [K,M,b] = assemble(tri,x,order,f,rhoTri)
 % Output: M: Massenmatrix
 % Output: b: Lastvektor
 
-% Number of x and base functions
-numElements = size(tri,1);
-numBaseFun = (order+2)*(order+1)/2;
-nBF2 = numBaseFun^2; % Anzahl Elemente der lokalen Steifigkeitsmatrix
+%% Definiere nuetzliche Parameter
+numElements = size(tri,1);          % Anzahl Elemente
+numBaseFun = (order+2)*(order+1)/2; % Anzahl Basisfunktionen
+nBF2 = numBaseFun^2;                % Anzahl Elemente der lokalen Steifigkeitsmatrix
 
-% Prepare matrices for sparse()
+%% Initialisiere Matrizen
 K_val = zeros(nBF2*numElements,1); 
 M_val = K_val;
 iIndex = K_val; 
 jIndex = K_val;
 b = zeros(size(x,1),1);
 
-% Load function and quadrature data
+%% Initialisiere Basisfunktionen und Quadraturformeln
 [phi,d_phi] = baseFun(order);
 % phi = load(sprintf("p%ibaseFun.mat",order)).baseFun;
 % d_phi = load(sprintf("p%ibaseFun.mat",order)).baseDer;
@@ -34,12 +34,15 @@ elseif order == 2
     quad_high = load("ueb10_programm_daten.mat").quadratur_P5;
 end
 
+%% Assemblierung
 for i = 1:size(tri,1)
-    [B,d]=aff_map(x,tri(i,:));
+    [B,d] = aff_map(x,tri(i,:)); % Bestimme affin-lineare Abbildung
+    
+    % Stelle Elementsteifigekitsmatrix, -massenmatrix und -lastvektor auf
     [K_T,M_T,b_T] = getMatrices(B,d,f,phi,d_phi,quad_low,quad_high);
     K_T = rhoTri(i)*K_T; % Koeffizienten in Elementsteifigkeitsmatrix einbinden
     
-    % Assignments for sparse()
+    % sparse()-Indizierung
     iIndex((i-1)*nBF2+1:i*nBF2) = reshape(repmat(tri(i,:),numBaseFun,1),nBF2,1);
     jIndex((i-1)*nBF2+1:i*nBF2) = repmat(tri(i,:),1,numBaseFun); 
     K_val((i-1)*nBF2+1:i*nBF2) = reshape(K_T,nBF2,1);
@@ -51,7 +54,7 @@ K = sparse(iIndex,jIndex,K_val,n,n);
 M = sparse(iIndex,jIndex,M_val,n,n);
 end
 
-%% Get matrices
+%% Hilfsfunktion
 function [K,M,b] = getMatrices(B,d,f,phi,d_phi,quad_low,quad_high)
 
 numBaseFunc = length(phi);
@@ -80,7 +83,7 @@ for i = 1:numBaseFunc
 end
 end
 
-%% Affine mapping function
+%% Affin-lineare Funktion
 function [B,d] = aff_map(coords,x)
 a1 = coords(x(1),1:2)';
 a2 = coords(x(2),1:2)';
